@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Navbar from '../components/Navbar';
+import { useNavigate } from 'react-router-dom'; // 1. Importamos useNavigate
 import RecipeCard from '../components/RecipeCard';
 import SignupModal from '../components/SignupModal';
 import LoginModal from '../components/LoginModal';
@@ -49,31 +50,40 @@ export default function HomePage() {
   const [isSignupOpen, setIsSignupOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
+  // 2. Activamos el hook de navegación
+  const navigate = useNavigate();
+
+  // Función para buscar al presionar Enter en el input
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    console.log('[LOG]: Usuario buscó ->', searchQuery);
+    navigate('/buscar');
+  };
+
   return (
     <div className="min-h-screen bg-[#FBFBFB] flex flex-col font-sans">
-      {/* 1. Navegación Superior */}
+      {/* Navegación Superior */}
       <Navbar 
         onLoginClick={() => setIsLoginOpen(true)} 
-        onAddRecipeClick={() => alert('Pronto abriremos aquí el formulario para subir receta...')} 
       />
 
-      {/* 2. Sub-menú de Categorías (WCAG 2.1 - Alto contraste y texto legible) */}
+      {/* Sub-menú de Categorías conectado a /buscar */}
       <div className="bg-white border-b border-gray-200 py-3 px-6 shadow-sm flex justify-center gap-8 md:gap-16 text-lg font-medium text-[#1D1D1D]">
-        <button className="hover:text-[#2E5834] transition-colors">Populares</button>
-        <button className="hover:text-[#2E5834] transition-colors">Comidas y Platillos</button>
-        <button className="hover:text-[#2E5834] transition-colors">Dietas</button>
-        <button className="hover:text-[#2E5834] transition-colors">Ocasiones</button>
+        <button onClick={() => navigate('/buscar')} className="hover:text-[#2E5834] transition-colors">Populares</button>
+        <button onClick={() => navigate('/buscar')} className="hover:text-[#2E5834] transition-colors">Comidas y Platillos</button>
+        <button onClick={() => navigate('/buscar')} className="hover:text-[#2E5834] transition-colors">Dietas</button>
+        <button onClick={() => navigate('/buscar')} className="hover:text-[#2E5834] transition-colors">Ocasiones</button>
       </div>
 
-      {/* 3. Hero Section y Buscador Principal */}
+      {/* Hero Section con Formulario de Búsqueda Activo */}
       <section className="bg-[#1D1D1D] py-24 px-6 flex flex-col items-center justify-center text-center">
         <h1 className="text-white text-3xl md:text-5xl font-bold max-w-2xl leading-tight mb-10">
           ¡Alimenta tu cuerpo y corazón - <br />
           encuentra recetas que saben delicioso!
         </h1>
 
-        {/* Barra de Búsqueda Accesible */}
-        <div className="w-full max-w-3xl bg-white rounded-full flex items-center px-6 py-3 shadow-lg">
+        {/* Formulario conectado: Al dar Enter te lleva a /buscar */}
+        <form onSubmit={handleSearchSubmit} className="w-full max-w-3xl bg-white rounded-full flex items-center px-6 py-3 shadow-lg">
           <svg className="w-6 h-6 text-gray-400 mr-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -84,10 +94,10 @@ export default function HomePage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full text-[#1D1D1D] placeholder-gray-400 text-lg md:text-xl bg-transparent focus:outline-none"
           />
-        </div>
+        </form>
       </section>
 
-      {/* 4. Sección: Comidas Fáciles y Rápidas */}
+      {/* Sección: Comidas Fáciles y Rápidas */}
       <section className="max-w-7xl mx-auto w-full px-6 py-16">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
           <div>
@@ -98,24 +108,28 @@ export default function HomePage() {
               ¡Satisface tu antojo en un instante! Explora nuestras recetas sencillas y prácticas sin perder ese sabor casero delicioso.
             </p>
           </div>
-          <button className="text-[#1D1D1D] font-bold text-base hover:text-[#2E5834] flex items-center gap-2 shrink-0">
+
+          {/* Botón VER TODAS conectado a /buscar */}
+          <button 
+            onClick={() => navigate('/buscar')}
+            className="text-[#1D1D1D] font-bold text-base hover:text-[#2E5834] flex items-center gap-2 shrink-0"
+          >
             VER TODAS LAS RECETAS &rarr;
           </button>
         </div>
 
-        {/* Cuadrícula responsiva de Recetas Reutilizando RecipeCard.jsx */}
+        {/* Cuadrícula responsiva de Recetas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-8">
           {SAMPLE_RECIPES.map((recipe) => (
             <RecipeCard
               key={recipe.id}
+              id={recipe.id}
               title={recipe.title}
               author={recipe.author}
               totalTime={recipe.totalTime}
               reviewsCount={recipe.reviewsCount}
               imageSrc={recipe.imageSrc}
               ratingImgSrc={recipe.ratingImgSrc}
-              onCardClick={() => console.log(`[LOG]: Clic en receta -> ${recipe.title}`)}
-              onSaveClick={() => console.log(`[LOG]: Receta guardada en tablero -> ${recipe.title}`)}
             />
           ))}
         </div>

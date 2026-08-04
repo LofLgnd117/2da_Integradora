@@ -1,6 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function RecipeCard({
+  id = 'kung-pao-chicken', // ID por defecto para pruebas
   title,
   author,
   totalTime,
@@ -8,14 +10,20 @@ export default function RecipeCard({
   imageSrc,
   ratingImgSrc,
   onSaveClick,
-  onCardClick,
 }) {
+
+  const navigate = useNavigate();
+
+  const handleCardClick = () => {
+    // Navega dinámicamente a la ruta de la receta según su ID
+    navigate(`/receta/${id}`);
+  };
+
   return (
-    <div 
-      onClick={onCardClick}
-      className="flex flex-col gap-2.5 cursor-pointer group transition-transform duration-200 hover:-translate-y-1"
-    >
-      {/* Contenedor de Imagen con Botón de Guardar (Bookmark) */}
+      <div 
+      onClick={handleCardClick}
+      className="group cursor-pointer flex flex-col bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all">
+        
       <div
         className="flex flex-col items-end self-stretch pt-3.5 pr-3.5 h-[280px] rounded-2xl bg-cover bg-center relative overflow-hidden shadow-sm"
         style={{

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useParams } from 'react-router-dom'; // 1. Importamos useParams
 import Navbar from '../components/Navbar';
 import RecipeCard from '../components/RecipeCard';
 
@@ -167,6 +168,10 @@ export default function RecipeDetailsPage({ onOpenLogin }) {
   const [privateNote, setPrivateNote] = useState('');
   const [userReview, setUserReview] = useState('');
   const [userRating, setUserRating] = useState(5);
+  const { id } = useParams();
+
+  // Esto te confirmará en la consola que el ruteo ya está capturando el ID
+  console.log('[LOG - RUTEO]: Abriendo página de detalle para el ID ->', id);
 
   const handleSaveToggle = () => {
     setIsSaved(!isSaved);
