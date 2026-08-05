@@ -63,19 +63,6 @@ function AppRoutes() {
           element={<HomePage onOpenLogin={() => alert('Abriendo modal de Login...')} />}
         />
       </Routes>
-
-      {/* Barra flotante de pruebas de URL */}
-      <div className="fixed bottom-4 right-4 z-50 bg-[#1D1D1D]/90 backdrop-blur-md text-white p-2.5 rounded-2xl shadow-2xl border border-gray-700 flex items-center gap-1.5 text-xs select-none">
-        <span className="font-bold text-[#839958] px-2 uppercase tracking-wider hidden sm:inline">
-          Rutas URL:
-        </span>
-        <button onClick={() => navigate('/')} className="px-3 py-1.5 rounded-xl font-bold hover:bg-[#2E5834] transition-all text-gray-200">Inicio</button>
-        <button onClick={() => navigate('/buscar')} className="px-3 py-1.5 rounded-xl font-bold hover:bg-[#2E5834] transition-all text-gray-200">Buscar</button>
-        <button onClick={() => navigate('/receta/kung-pao-chicken')} className="px-3 py-1.5 rounded-xl font-bold hover:bg-[#2E5834] transition-all text-gray-200">Detalle</button>
-        <button onClick={() => navigate('/subir')} className="px-3 py-1.5 rounded-xl font-bold hover:bg-[#2E5834] transition-all text-gray-200">+ Subir</button>
-        <button onClick={() => navigate('/perfil')} className="px-3 py-1.5 rounded-xl font-bold hover:bg-[#2E5834] transition-all text-gray-200">Perfil</button>
-        <button onClick={() => navigate('/guardadas')} className="px-3 py-1.5 rounded-xl font-bold hover:bg-[#2E5834] transition-all text-gray-200">Recetarios</button>
-      </div>
     </div>
   );
 }

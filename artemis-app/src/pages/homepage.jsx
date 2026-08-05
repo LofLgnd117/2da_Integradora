@@ -1,57 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
-import { useNavigate } from 'react-router-dom'; // 1. Importamos useNavigate
+import { useNavigate } from 'react-router-dom';
 import RecipeCard from '../components/RecipeCard';
 import SignupModal from '../components/SignupModal';
 import LoginModal from '../components/LoginModal';
-
-// Datos temporales de muestra en español (En Fase 3 esto llegará por API desde Node.js/PostgreSQL)
-const SAMPLE_RECIPES = [
-  {
-    id: 1,
-    title: 'Arroz Frito con Huevo y Verduras',
-    author: 'Amanda Suárez',
-    totalTime: '15 min',
-    reviewsCount: 18,
-    imageSrc: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=600&q=80',
-    ratingImgSrc: 'https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/tji4ccov_expires_30_days.png',
-  },
-  {
-    id: 2,
-    title: 'Macarrones con Queso Rápidos',
-    author: 'Elena Quittner',
-    totalTime: '20 min',
-    reviewsCount: 29,
-    imageSrc: 'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=600&q=80',
-    ratingImgSrc: 'https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/pnxzuukb_expires_30_days.png',
-  },
-  {
-    id: 3,
-    title: 'Pizza Casera en Pan Francés',
-    author: 'Milton Clark',
-    totalTime: '25 min',
-    reviewsCount: 11,
-    imageSrc: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=600&q=80',
-    ratingImgSrc: 'https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/w87zgc9i_expires_30_days.png',
-  },
-  {
-    id: 4,
-    title: 'Camarones al Ajo con Chorizo',
-    author: 'Emilia Weinberger',
-    totalTime: '40 min',
-    reviewsCount: 33,
-    imageSrc: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=600&q=80',
-    ratingImgSrc: 'https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/o1do2jsp_expires_30_days.png',
-  },
-];
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSignupOpen, setIsSignupOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
-  // 2. Activamos el hook de navegación
+  // Estado para guardar las recetas que lleguen de PostgreSQL
+  const [recipes, setRecipes] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Activamos el hook de navegación
   const navigate = useNavigate();
+
+  // Conectamos con Node.js al cargar la pantalla
+  useEffect(() => {
+    fetch('http://localhost:5000/api/recipes')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          console.log('[LOG - API]: Recetas cargadas desde PostgreSQL ->', data.data);
+          setRecipes(data.data);
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('[ERROR - API]: No se pudo conectar al backend ->', err);
+        setLoading(false);
+      });
+  }, []);
 
   // Función para buscar al presionar Enter en el input
   const handleSearchSubmit = (e) => {
@@ -67,12 +48,32 @@ export default function HomePage() {
         onLoginClick={() => setIsLoginOpen(true)} 
       />
 
-      {/* Sub-menú de Categorías conectado a /buscar */}
+      {/* Sub-menú de Categorías con parámetro en URL */}
       <div className="bg-white border-b border-gray-200 py-3 px-6 shadow-sm flex justify-center gap-8 md:gap-16 text-lg font-medium text-[#1D1D1D]">
-        <button onClick={() => navigate('/buscar')} className="hover:text-[#2E5834] transition-colors">Populares</button>
-        <button onClick={() => navigate('/buscar')} className="hover:text-[#2E5834] transition-colors">Comidas y Platillos</button>
-        <button onClick={() => navigate('/buscar')} className="hover:text-[#2E5834] transition-colors">Dietas</button>
-        <button onClick={() => navigate('/buscar')} className="hover:text-[#2E5834] transition-colors">Ocasiones</button>
+      <button 
+        onClick={() => navigate('/buscar?categoria=Populares')} 
+        className="hover:text-[#2E5834] transition-colors">
+      
+        Populares
+      </button>
+      <button 
+        onClick={() => navigate('/buscar?categoria=Comidas y Platillos')} 
+        className="hover:text-[#2E5834] transition-colors">
+
+        Comidas y Platillos
+      </button>
+      <button 
+        onClick={() => navigate('/buscar?categoria=Dietas')} 
+        className="hover:text-[#2E5834] transition-colors">
+
+        Dietas
+      </button>
+      <button 
+        onClick={() => navigate('/buscar?categoria=Ocasiones')} 
+        className="hover:text-[#2E5834] transition-colors">
+
+        Ocasiones
+      </button>
       </div>
 
       {/* Hero Section con Formulario de Búsqueda Activo */}
@@ -118,24 +119,33 @@ export default function HomePage() {
           </button>
         </div>
 
-        {/* Cuadrícula responsiva de Recetas */}
+        {/* Cuadrícula responsiva de Recetas conectada a PostgreSQL */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-8">
-          {SAMPLE_RECIPES.map((recipe) => (
-            <RecipeCard
-              key={recipe.id}
-              id={recipe.id}
-              title={recipe.title}
-              author={recipe.author}
-              totalTime={recipe.totalTime}
-              reviewsCount={recipe.reviewsCount}
-              imageSrc={recipe.imageSrc}
-              ratingImgSrc={recipe.ratingImgSrc}
-            />
-          ))}
+          {loading ? (
+            <p className="text-[#444444] text-lg col-span-full text-center py-8 font-semibold">
+              Cargando recetas deliciosas desde la cocina...
+            </p>
+          ) : recipes.length > 0 ? (
+            recipes.map((recipe) => (
+              <RecipeCard
+                key={recipe.id}
+                id={recipe.id}
+                title={recipe.title}
+                author={recipe.author || 'Alina Cruz'}
+                totalTime={`${recipe.total_time_minutes} min`}
+                reviewsCount={12}
+                imageSrc={recipe.image_url}
+              />
+            ))
+          ) : (
+            <p className="text-gray-500 col-span-full text-center py-8">
+              Aún no hay recetas registradas en la base de datos.
+            </p>
+          )}
         </div>
       </section>
 
-      {/* 5. Sección: Inspiración para Comer Sano */}
+      {/* Sección: Inspiración para Comer Sano */}
       <section className="bg-white py-16 border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="text-[#1D1D1D] text-3xl md:text-4xl font-bold mb-10">
