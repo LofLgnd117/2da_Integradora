@@ -1,71 +1,103 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function RecipeCard({
-  id = 'kung-pao-chicken', // ID por defecto para pruebas
+  id,
   title,
-  author,
+  author = 'Alina Cruz',
   totalTime,
-  reviewsCount,
-  imageSrc,
-  ratingImgSrc,
-  onSaveClick,
+  reviewsCount = 12,
+  imageSrc
 }) {
-
   const navigate = useNavigate();
+  // Estado para cambiar visualmente el icono cuando el usuario lo guarda
+  const [isSaved, setIsSaved] = useState(false);
 
-  const handleCardClick = () => {
-    // Navega dinámicamente a la ruta de la receta según su ID
-    navigate(`/receta/${id}`);
+  // Función para guardar directamente desde la tarjeta
+  const handleBookmarkClick = async (e) => {
+    // 1. EVITAMOS QUE AL DAR CLIC EN EL ICONO SE ABRA LA RECETA
+    e.stopPropagation();
+    e.preventDefault();
+
+    try {
+      const res = await fetch('http://localhost:5000/api/recipes/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: 1, recipeId: id })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setIsSaved(true);
+        alert(`🌟 ¡"${title}" se guardó en tus favoritas!`);
+      }
+    } catch (err) {
+      console.error('Error al guardar desde la tarjeta:', err);
+    }
   };
 
   return (
-      <div 
-      onClick={handleCardClick}
-      className="group cursor-pointer flex flex-col bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all">
-        
-      <div
-        className="flex flex-col items-end self-stretch pt-3.5 pr-3.5 h-[280px] rounded-2xl bg-cover bg-center relative overflow-hidden shadow-sm"
-        style={{
-          backgroundImage: `linear-gradient(180deg, rgba(29,29,29,0.4) 0%, rgba(29,29,29,0) 30%), url(${imageSrc})`,
-        }}
-      >
+    <div
+      onClick={() => navigate(`/receta/${id}`)}
+      className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col group"
+    >
+      {/* Contenedor de la Imagen con Botón de Guardado */}
+      <div className="relative h-48 w-full bg-gray-100 overflow-hidden">
+        <img
+          src={imageSrc}
+          alt={title}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        />
+
+        {/* BOTÓN DE MARCADOR (BOOKMARK) CLICLEABLE */}
         <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation(); // Evita que el clic en guardar abra la receta
-            if (onSaveClick) onSaveClick();
-          }}
-          className="p-2 bg-white/80 hover:bg-white rounded-full transition-colors shadow-md"
-          aria-label="Guardar receta en tablero"
+          onClick={handleBookmarkClick}
+          title="Guardar receta"
+          className={`absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center shadow-md transition-all duration-200 ${
+            isSaved
+              ? 'bg-[#2E5834] text-white scale-110'
+              : 'bg-white/90 hover:bg-white text-gray-700 hover:text-[#2E5834]'
+          }`}
         >
-          {/* Ícono de marcador en SVG limpio (reemplaza la imagen caducable del bookmark) */}
-          <svg className="w-6 h-6 text-[#1D1D1D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-          </svg>
+          {isSaved ? (
+            // Icono relleno cuando ya se guardó
+            <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z" />
+            </svg>
+          ) : (
+            // Icono de contorno normal
+            <svg
+              className="w-5 h-5 stroke-current fill-none"
+              strokeWidth="2.5"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+              />
+            </svg>
+          )}
         </button>
       </div>
 
-      {/* Detalle de la Receta */}
-      <div className="flex flex-col items-start gap-1">
-        <h3 className="text-[#1D1D1D] text-2xl font-bold line-clamp-1 group-hover:text-[#2E5834] transition-colors">
-          {title}
-        </h3>
-        
-        <div className="flex items-center gap-2 text-base">
-          <span className="text-[#1D1D1D]">By</span>
-          <span className="text-[#C57D5D] font-medium">{author}</span>
+      {/* Datos del Platillo */}
+      <div className="p-5 flex flex-col flex-1 justify-between">
+        <div>
+          <h3 className="font-bold text-lg text-[#1D1D1D] line-clamp-1 group-hover:text-[#2E5834] transition-colors">
+            {title}
+          </h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Por <span className="font-semibold text-gray-700">{author}</span>
+          </p>
         </div>
 
-        <span className="text-[#1D1D1D] text-base font-medium">
-          Total time: {totalTime}
-        </span>
-
-        <div className="flex items-center gap-2 mt-1">
-          {/* Estrellas de calificación */}
-          <img src={ratingImgSrc} alt="Calificación" className="h-5 object-contain" />
-          <span className="text-[#1D1D1D] text-base font-semibold">
-            ({reviewsCount})
+        <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
+          <span className="flex items-center gap-1 font-medium">
+            ⏱️ {totalTime}
+          </span>
+          <span className="text-[#2E5834] font-bold text-xs bg-[#839958]/15 px-2.5 py-1 rounded-full">
+            ★ {reviewsCount} reseñas
           </span>
         </div>
       </div>

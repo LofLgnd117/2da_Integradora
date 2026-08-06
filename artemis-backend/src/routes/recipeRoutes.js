@@ -12,7 +12,6 @@ router.get('/', async (req, res) => {
   try {
     const { categoria, buscar } = req.query;
     
-    // LOG DE DEPURACIÓN: Verás en tu terminal qué filtro llegó desde React
     console.log('[LOG - FILTROS RECIBIDOS]:', { categoria, buscar });
 
     let query = `
@@ -26,14 +25,12 @@ router.get('/', async (req, res) => {
     const values = [];
     let paramIndex = 1;
 
-    // 1. Filtro exacto por categoría (ej. ?categoria=Dietas)
     if (categoria && categoria.trim() !== '') {
       query += ` AND r.category = $${paramIndex}`;
       values.push(categoria.trim());
       paramIndex++;
     }
 
-    // 2. Filtro de texto por título o descripción (ej. ?buscar=pollo)
     if (buscar && buscar.trim() !== '') {
       query += ` AND (r.title ILIKE $${paramIndex} OR r.description ILIKE $${paramIndex})`;
       values.push(`%${buscar.trim()}%`);
@@ -100,7 +97,6 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    // Le ponemos la fecha actual al nombre para que nunca se repita
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, 'receta-' + uniqueSuffix + path.extname(file.originalname));
   }
@@ -122,13 +118,11 @@ router.post('/', upload.single('image'), async (req, res) => {
       category
     } = req.body;
 
-    // Si el usuario subió una foto, armamos su URL del servidor; si no, ponemos una por defecto:
     let finalImageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80';
     if (req.file) {
       finalImageUrl = `http://localhost:5000/uploads/${req.file.filename}`;
     }
 
-    // Los ingredientes al enviarse por FormData llegan como texto JSON, los convertimos:
     let ingredientsList = [];
     if (req.body.ingredients) {
       ingredientsList = typeof req.body.ingredients === 'string' 
@@ -188,19 +182,19 @@ router.post('/', upload.single('image'), async (req, res) => {
   } finally {
     client.release();
   }
+});
 
-  // =====================================================================
+// =====================================================================
 // POST /api/recipes/save - Guardar una receta en el tablero del usuario
 // =====================================================================
 router.post('/save', async (req, res) => {
   try {
-    const { userId = 1, recipeId } = req.body; // Usamos userId 1 (Alina Cruz) por defecto
+    const { userId = 1, recipeId } = req.body;
 
     if (!recipeId) {
       return res.status(400).json({ success: false, message: 'Se requiere el ID de la receta' });
     }
 
-    // 1. Buscamos o creamos un tablero por defecto llamado "Mis Favoritas" para el usuario
     let boardRes = await db.query(
       `SELECT id FROM saved_boards WHERE user_id = $1 AND title = 'Mis Favoritas' LIMIT 1`,
       [userId]
@@ -217,7 +211,6 @@ router.post('/save', async (req, res) => {
       boardId = boardRes.rows[0].id;
     }
 
-    // 2. Insertamos la receta en board_recipes (evitando duplicados con ON CONFLICT o try/catch simple)
     await db.query(
       `INSERT INTO board_recipes (board_id, recipe_id, saved_at) 
        VALUES ($1, $2, CURRENT_TIMESTAMP) 
@@ -259,12 +252,10 @@ router.get('/saved/:userId', async (req, res) => {
       count: rows.length,
       data: rows
     });
-   } catch (error) {
+  } catch (error) {
     console.error('[ERROR - GET /api/recipes/saved/:userId]:', error.message);
     res.status(500).json({ success: false, message: 'Error al consultar recetas guardadas' });
-   }
-  });
-
+  }
 });
 
 module.exports = router;

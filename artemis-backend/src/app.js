@@ -18,9 +18,11 @@ app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 // 1. Importar rutas
 const recipeRoutes = require('./routes/recipeRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 // 2. Usar rutas con el prefijo /api/recipes
 app.use('/api/recipes', recipeRoutes);
+app.use('/api/users', userRoutes);
 
 // Ruta de prueba
 app.get('/api/health', (req, res) => {

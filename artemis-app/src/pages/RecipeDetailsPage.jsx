@@ -24,6 +24,23 @@ export default function RecipeDetailsPage() {
       });
   }, [id]);
 
+  // --- 1. FUNCIÓN PARA GUARDAR EN FAVORITOS INTEGRADA AQUÍ ---
+  const handleSaveRecipe = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/recipes/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: 1, recipeId: recipe.id })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('🌟 ¡Platillo guardado en tus Recetas Guardadas!');
+      }
+    } catch (err) {
+      console.error('Error al guardar:', err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#FBFBFB] flex items-center justify-center">
@@ -43,7 +60,6 @@ export default function RecipeDetailsPage() {
     );
   }
 
-  // Pasos de muestra por si la receta nueva aún no tiene tabla de instrucciones conectada
   const defaultSteps = [
     'Prepara tu espacio de trabajo lavando y cortando todos los ingredientes frescos según las medidas indicadas.',
     'Calienta un sartén grande o wok a fuego medio-alto con un chorrito de aceite de tu preferencia.',
@@ -67,6 +83,16 @@ export default function RecipeDetailsPage() {
           <p className="text-xl text-gray-600 max-w-3xl leading-relaxed">
             {recipe.description || 'Una receta clásica y reconfortante preparada con cariño para toda la mesa.'}
           </p>
+
+          {/* --- 2. BOTÓN DE GUARDAR INTEGRADO AQUÍ --- */}
+          <div className="mt-6">
+            <button
+              onClick={handleSaveRecipe}
+              className="bg-[#839958]/20 hover:bg-[#839958]/30 text-[#2E5834] font-bold px-6 py-3 rounded-full text-base flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
+            >
+              <span>🔖</span> Guardar en mi colección
+            </button>
+          </div>
         </div>
 
         {/* Imagen Principal Hero */}
@@ -96,7 +122,6 @@ export default function RecipeDetailsPage() {
 
         {/* CUERPO PRINCIPAL: INGREDIENTES E INSTRUCCIONES */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 mb-14">
-          {/* Columna Izquierda (1/3): Ingredientes */}
           <div className="lg:col-span-1">
             <div className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 sticky top-8">
               <h2 className="text-2xl font-black text-[#1D1D1D] mb-6">Ingredientes</h2>
@@ -119,9 +144,7 @@ export default function RecipeDetailsPage() {
             </div>
           </div>
 
-          {/* Columna Derecha (2/3): Instrucciones y Tips */}
           <div className="lg:col-span-2 space-y-10">
-            {/* Instrucciones */}
             <div className="bg-white p-8 md:p-10 rounded-[32px] shadow-sm border border-gray-100">
               <h2 className="text-2xl font-black text-[#1D1D1D] mb-8">Instrucciones de Preparación</h2>
               <div className="space-y-8">
@@ -139,7 +162,6 @@ export default function RecipeDetailsPage() {
               </div>
             </div>
 
-            {/* Recuadro Consejos del Chef (Figma UI) */}
             <div className="bg-[#839958]/15 border border-[#839958]/30 p-8 rounded-[32px]">
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-2xl">💡</span>
@@ -152,7 +174,7 @@ export default function RecipeDetailsPage() {
           </div>
         </div>
 
-        {/* MAQUETA VISUAL FIGMA: TABLA NUTRICIONAL Y RESEÑAS (PARA DEMO DE PRESENTACIÓN) */}
+        {/* MAQUETA VISUAL FIGMA: TABLA NUTRICIONAL Y RESEÑAS */}
         <section className="border-t border-gray-200 pt-12">
           <h2 className="text-2xl font-black text-[#1D1D1D] mb-6">Información Nutricional (Por porción)</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-14">
@@ -174,7 +196,6 @@ export default function RecipeDetailsPage() {
             </div>
           </div>
 
-          {/* Reseñas de la comunidad (Visual Demo) */}
           <div className="bg-white p-8 md:p-10 rounded-[32px] border border-gray-100 shadow-sm">
             <h3 className="text-2xl font-black text-[#1D1D1D] mb-6">Reseñas de la Comunidad (12)</h3>
             <div className="border-b border-gray-100 pb-6 mb-6">
