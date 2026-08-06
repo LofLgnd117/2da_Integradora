@@ -11,8 +11,10 @@ const PORT = process.env.PORT || 5000;
 // Middlewares globales
 app.use(cors());
 app.use(express.json()); // Permite recibir datos JSON en las peticiones
+const path = require('path'); // Asegúrate de importar 'path' arriba del archivo
 
 // ... middlewares anteriores (cors, express.json) ...
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 // 1. Importar rutas
 const recipeRoutes = require('./routes/recipeRoutes');
