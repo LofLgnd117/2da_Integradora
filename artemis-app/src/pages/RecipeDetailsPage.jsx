@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import CustomModal from '../components/CustomModal';
 
 export default function RecipeDetailsPage() {
   const { id } = useParams();
@@ -8,6 +9,8 @@ export default function RecipeDetailsPage() {
 
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [modalNotice, setModalNotice] = useState({ isOpen: false, title: '', message: '' });
 
   useEffect(() => {
     fetch(`http://localhost:5000/api/recipes/${id}`)
@@ -25,21 +28,40 @@ export default function RecipeDetailsPage() {
   }, [id]);
 
   // --- 1. FUNCIÓN PARA GUARDAR EN FAVORITOS INTEGRADA AQUÍ ---
-  const handleSaveRecipe = async () => {
-    try {
-      const res = await fetch('http://localhost:5000/api/recipes/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: 1, recipeId: recipe.id })
+ const handleSaveRecipe = async () => {
+  try {
+    const res = await fetch('http://localhost:5000/api/recipes/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: 1, recipeId: recipe.id })
+    });
+    const data = await res.json();
+    if (data.success) {
+      setModalNotice({
+        isOpen: true,
+        title: '¡Receta Guardada!',
+        message: `"${recipe.title}" ha sido agregada a tu colección en Recetas Guardadas.`
       });
-      const data = await res.json();
-      if (data.success) {
-        alert('🌟 ¡Platillo guardado en tus Recetas Guardadas!');
-      }
-    } catch (err) {
-      console.error('Error al guardar:', err);
     }
-  };
+  } catch (err) {
+    console.error('Error al guardar:', err);
+  }
+};
+
+// Esta función ejecuta el borrado real al confirmar en el modal
+const executeDelete = async () => {
+  try {
+    const res = await fetch(`http://localhost:5000/api/recipes/${id}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (data.success) {
+      navigate('/perfil');
+    }
+  } catch (err) {
+    console.error('Error al eliminar:', err);
+  }
+};
 
   if (loading) {
     return (
@@ -84,15 +106,23 @@ export default function RecipeDetailsPage() {
             {recipe.description || 'Una receta clásica y reconfortante preparada con cariño para toda la mesa.'}
           </p>
 
-          {/* --- 2. BOTÓN DE GUARDAR INTEGRADO AQUÍ --- */}
-          <div className="mt-6">
-            <button
-              onClick={handleSaveRecipe}
-              className="bg-[#839958]/20 hover:bg-[#839958]/30 text-[#2E5834] font-bold px-6 py-3 rounded-full text-base flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
-            >
-              <span>🔖</span> Guardar en mi colección
-            </button>
-          </div>
+            {/* --- BOTONES DE ACCIÓN: GUARDAR (IZQUIERDA) Y ELIMINAR (DERECHA SEPARADO) --- */}
+            <div className="mt-8 pt-6 border-t border-gray-200/60 flex flex-wrap items-center justify-between gap-4">
+              <button
+                onClick={handleSaveRecipe}
+                className="bg-[#839958]/20 hover:bg-[#839958]/30 text-[#2E5834] font-bold px-6 py-3 rounded-full text-base flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
+              >
+                <span>🔖</span> Guardar en mi colección
+              </button>
+
+            {/* BOTÓN ELIMINAR: SEPARADO Y ALINEADO A LA DERECHA */}
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold px-6 py-3 rounded-full text-base flex items-center gap-2 transition-colors shadow-sm cursor-pointer ml-auto"
+              >
+                <span>🗑️</span> Eliminar receta
+              </button>
+            </div>
         </div>
 
         {/* Imagen Principal Hero */}
@@ -222,6 +252,27 @@ export default function RecipeDetailsPage() {
             </div>
           </div>
         </section>
+        {/* MODAL DE CONFIRMACIÓN DE ELIMINADO (ESTILO FIGMA) */}
+        <CustomModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={executeDelete}
+          title="¿Eliminar esta receta?"
+          message={`¿Estás seguro de que deseas eliminar "${recipe.title}"? Todos los datos de esta receta se borrarán permanentemente de Ártemis.`}
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          isDestructive={true}
+        />
+
+        {/* MODAL DE AVISO (ÉXITO AL GUARDAR EN FAVORITOS) */}
+        <CustomModal
+          isOpen={modalNotice.isOpen}
+          onClose={() => setModalNotice({ isOpen: false, title: '', message: '' })}
+          title={modalNotice.title}
+          message={modalNotice.message}
+          showCancel={false}
+          confirmText="Entendido"
+        />
       </main>
     </div>
   );

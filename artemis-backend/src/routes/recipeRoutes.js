@@ -256,6 +256,44 @@ router.get('/saved/:userId', async (req, res) => {
     console.error('[ERROR - GET /api/recipes/saved/:userId]:', error.message);
     res.status(500).json({ success: false, message: 'Error al consultar recetas guardadas' });
   }
+
+  
+
+});
+
+// =====================================================================
+// DELETE /api/recipes/:id - Eliminar receta y limpiar sus relaciones reales
+// =====================================================================
+router.delete('/:id', async (req, res) => {
+  const client = await db.connect();
+  try {
+    const { id } = req.params;
+
+    await client.query('BEGIN');
+
+    // 1. Limpiamos ÚNICAMENTE las tablas relacionales que sí existen en tu BD:
+    await client.query('DELETE FROM board_recipes WHERE recipe_id = $1', [id]);
+    await client.query('DELETE FROM recipe_ingredients WHERE recipe_id = $1', [id]);
+
+    // 2. Eliminamos la receta principal de la tabla recipes:
+    const result = await client.query('DELETE FROM recipes WHERE id = $1 RETURNING id', [id]);
+
+    if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ success: false, message: 'La receta no existe o ya fue borrada.' });
+    }
+
+    await client.query('COMMIT');
+    console.log(`[LOG - DELETE]: Receta ID ${id} eliminada correctamente de PostgreSQL.`);
+    
+    res.json({ success: true, message: '¡Receta eliminada con éxito!' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('[ERROR - DELETE /api/recipes/:id]:', error.message);
+    res.status(500).json({ success: false, message: 'Error al eliminar de PostgreSQL' });
+  } finally {
+    client.release();
+  }
 });
 
 module.exports = router;
