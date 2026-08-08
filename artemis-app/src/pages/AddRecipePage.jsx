@@ -14,17 +14,13 @@ export default function AddRecipePage() {
     servings: 4
   });
 
-  // 2. Archivo de imagen real
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-
-  // 3. Ingredientes dinámicos
   const [ingredients, setIngredients] = useState([
     { quantity: '1', unit: 'taza', name: '' },
     { quantity: '2', unit: 'cdas', name: '' }
   ]);
 
-  // 4. Pasos de instrucción dinámicos (Para estilo Figma)
   const [steps, setSteps] = useState([
     'Lava y desinfecta perfectamente todos los ingredientes.',
     'Cocina a fuego medio durante 15 minutos removiendo constantemente.'
@@ -33,13 +29,12 @@ export default function AddRecipePage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Manejo de inputs generales
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  // Manejo de imagen y vista previa
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -48,7 +43,6 @@ export default function AddRecipePage() {
     }
   };
 
-  // Manejo de Ingredientes
   const handleIngredientChange = (index, field, value) => {
     const updated = [...ingredients];
     updated[index][field] = value;
@@ -65,7 +59,7 @@ export default function AddRecipePage() {
     }
   };
 
-  // Manejo de Pasos
+
   const handleStepChange = (index, value) => {
     const updated = [...steps];
     updated[index] = value;

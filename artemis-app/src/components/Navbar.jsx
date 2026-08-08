@@ -26,11 +26,10 @@ export default function Navbar({ onLoginClick }) {
   const unreadCount = notifications.filter(n => n.unread).length;
 
   return (
-    // 1. CAMBIAMOS EL COLOR DE FONDO A #839958 PARA FUNDIRSE CON TU LOGO
+    //CAMBIOS DEL COLOR DE FONDO PARA FUNDIRSE CON EL LOGO
     <nav className="bg-[#839958] text-white px-6 py-3 shadow-md sticky top-0 z-50 transition-colors">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         
-        {/* 2. LOGO SIN TEXTO REDUNDANTE Y UN POCO MÁS GRANDE */}
         <div 
           onClick={() => navigate('/')} 
           className="flex items-center cursor-pointer group"
@@ -120,7 +119,7 @@ export default function Navbar({ onLoginClick }) {
             )}
           </div>
 
-          {/* 3. BOTÓN DE PERFIL EN VERDE OSCURO PARA HACER CONTRASTE */}
+          {/* BOTÓN DE PERFIL EN VERDE OSCURO PARA HACER CONTRASTE */}
           <button
             onClick={() => navigate('/perfil')}
             className="bg-[#2E5834] hover:bg-[#1f3d23] text-white font-bold px-5 py-2 rounded-full text-sm transition-colors cursor-pointer shadow-sm"

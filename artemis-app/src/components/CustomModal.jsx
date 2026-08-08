@@ -55,7 +55,7 @@ export default function CustomModal({
             }}
             className={`px-8 py-3.5 rounded-full font-bold text-lg text-white shadow-md transition-all ${
               isDestructive
-                ? 'bg-[#2E5834] hover:bg-[#1f3d23]' // En tu Figma el botón de Delete es verde oscuro
+                ? 'bg-[#2E5834] hover:bg-[#1f3d23]'
                 : 'bg-[#2E5834] hover:bg-[#1f3d23]'
             }`}
           >

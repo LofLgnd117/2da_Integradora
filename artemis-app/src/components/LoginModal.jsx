@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
-  // 1. Estados limpios del formulario de Inicio de Sesión
+  //Estados limpios del formulario de Inicio de Sesión
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -9,7 +9,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
   // Si el modal no está activo, no renderiza nada
   if (!isOpen) return null;
 
-  // 2. Manejador de envío
+  //Manejador de envío
   const handleSubmit = (e) => {
     e.preventDefault();
 

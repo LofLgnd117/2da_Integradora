@@ -15,7 +15,7 @@ export default function RecipeCard({
 
   // Función para guardar directamente desde la tarjeta
   const handleBookmarkClick = async (e) => {
-    // 1. EVITAMOS QUE AL DAR CLIC EN EL ICONO SE ABRA LA RECETA
+    //EVITAMOS QUE AL DAR CLIC EN EL ICONO SE ABRA LA RECETA
     e.stopPropagation();
     e.preventDefault();
 

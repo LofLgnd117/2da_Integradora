@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-// Tipos de cocina en español acordes a los gustos y claridad para el usuario
+// Tipos de cocina
 const TIPOS_COCINA = [
   'Italiana',
   'Mexicana',

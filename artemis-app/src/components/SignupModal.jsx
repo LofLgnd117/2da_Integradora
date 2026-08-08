@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
-  // 1. Estados para capturar los datos del formulario
+  //Estados para capturar los datos del formulario
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -11,7 +11,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
   // Si el modal no está abierto, no renderizamos nada en pantalla
   if (!isOpen) return null;
 
-  // 2. Manejador del envío (Listo para conectar a Node.js/PostgreSQL en la Fase 3)
+  //Manejador del envío (Listo para conectar a Node.js/PostgreSQL en la Fase 3)
   const handleSubmit = (e) => {
     e.preventDefault();
 

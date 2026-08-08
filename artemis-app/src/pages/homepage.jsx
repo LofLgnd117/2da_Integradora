@@ -10,14 +10,11 @@ export default function HomePage() {
   const [isSignupOpen, setIsSignupOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
-  // Estado para guardar las recetas que lleguen de PostgreSQL
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Activamos el hook de navegación
   const navigate = useNavigate();
 
-  // Conectamos con Node.js al cargar la pantalla
   useEffect(() => {
     fetch('http://localhost:5000/api/recipes')
       .then((res) => res.json())
@@ -34,7 +31,6 @@ export default function HomePage() {
       });
   }, []);
 
-  // Función para buscar al presionar Enter en el input
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     console.log('[LOG]: Usuario buscó ->', searchQuery);
@@ -193,7 +189,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Modales de Autenticación */}
       <LoginModal
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}

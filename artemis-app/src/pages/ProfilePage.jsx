@@ -9,10 +9,10 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Pestañas alineadas con tu Figma: 'recipes', 'edit', 'settings', 'logros'
+  // Pestañas alineadas: 'recipes', 'edit', 'settings', 'logros'
   const [activeTab, setActiveTab] = useState('recipes');
 
-  // Estado para modal de notificación de guardado/éxito en perfil
+  // Notificacion de guardado/éxito en perfil
   const [modalInfo, setModalInfo] = useState({ isOpen: false, title: '', message: '' });
 
   useEffect(() => {
@@ -57,10 +57,10 @@ export default function ProfilePage() {
       <Navbar />
 
       <main className="max-w-7xl mx-auto w-full px-6 py-12 flex-1">
-        {/* Contenedor Principal con Layout Estilo Figma (Sidebar + Content) */}
+        {/* Contenedor Principal (Sidebar + Content) */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-start">
           
-          {/* BARRA LATERAL IZQUIERDA (ESTILO FIGMA) */}
+          {/* BARRA LATERAL IZQUIERDA */}
           <aside className="md:col-span-1 bg-[#839958]/15 rounded-[24px] p-6 border border-[#839958]/30 sticky top-24">
             <h2 className="text-2xl font-black text-[#1D1D1D] mb-6 px-4">
               Mi Perfil
@@ -116,7 +116,7 @@ export default function ProfilePage() {
           {/* ÁREA DE CONTENIDO DERECHA */}
           <section className="md:col-span-3 bg-white rounded-[32px] p-8 md:p-12 border border-gray-100 shadow-sm">
             
-            {/* 1. MIS RECETAS (Figma: My Recipes) */}
+            {/* MIS RECETAS */}
             {activeTab === 'recipes' && (
               <div>
                 <div className="flex items-center justify-between mb-8 border-b border-gray-100 pb-6">
@@ -160,7 +160,7 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* 2. EDITAR PERFIL (Figma: Edit Your Profile) */}
+            {/* EDITAR PERFIL */}
             {activeTab === 'edit' && (
               <div>
                 <h3 className="text-3xl font-black text-[#1D1D1D] mb-8 border-b border-gray-100 pb-4">
@@ -232,7 +232,7 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* 3. AJUSTES DE CUENTA (Figma: Account Settings) */}
+            {/* AJUSTES DE CUENTA */}
             {activeTab === 'settings' && (
               <div>
                 <h3 className="text-3xl font-black text-[#1D1D1D] mb-8 border-b border-gray-100 pb-4">
@@ -270,7 +270,7 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* 4. LOGROS Y RACHA (La Gamificación que integramos) */}
+            {/* LOGROS Y RACHA */}
             {activeTab === 'logros' && (
               <div className="space-y-8">
                 <div className="bg-gradient-to-r from-[#1D1D1D] to-[#2E5834] text-white rounded-3xl p-8 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
@@ -326,7 +326,6 @@ export default function ProfilePage() {
         </div>
       </main>
 
-      {/* Modal de Aviso / Éxito para Perfil */}
       <CustomModal
         isOpen={modalInfo.isOpen}
         onClose={() => setModalInfo({ isOpen: false, title: '', message: '' })}

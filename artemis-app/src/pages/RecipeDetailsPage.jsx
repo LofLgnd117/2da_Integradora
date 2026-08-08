@@ -27,7 +27,7 @@ export default function RecipeDetailsPage() {
       });
   }, [id]);
 
-  // --- 1. FUNCIÓN PARA GUARDAR EN FAVORITOS INTEGRADA AQUÍ ---
+  // FUNCIÓN PARA GUARDAR EN FAVORITOS NO MOVER
  const handleSaveRecipe = async () => {
   try {
     const res = await fetch('http://localhost:5000/api/recipes/save', {
@@ -115,7 +115,7 @@ const executeDelete = async () => {
                 <span>🔖</span> Guardar en mi colección
               </button>
 
-            {/* BOTÓN ELIMINAR: SEPARADO Y ALINEADO A LA DERECHA */}
+            {/* BOTÓN ELIMINAR */}
               <button
                 onClick={() => setShowDeleteModal(true)}
                 className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold px-6 py-3 rounded-full text-base flex items-center gap-2 transition-colors shadow-sm cursor-pointer ml-auto"
@@ -130,7 +130,7 @@ const executeDelete = async () => {
           <img src={recipe.image_url} alt={recipe.title} className="w-full h-full object-cover" />
         </div>
 
-        {/* Barra de Datos Rápidos (Figma Style) */}
+        {/* Barra de Datos Rápidos */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white p-6 rounded-3xl shadow-sm border border-gray-100 mb-12">
           <div className="p-3">
             <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Tiempo Total</p>
@@ -150,7 +150,7 @@ const executeDelete = async () => {
           </div>
         </div>
 
-        {/* CUERPO PRINCIPAL: INGREDIENTES E INSTRUCCIONES */}
+        {/* CUERPO PRINCIPAL (INGREDIENTES E INSTRUCCIONES) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 mb-14">
           <div className="lg:col-span-1">
             <div className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 sticky top-8">
@@ -204,7 +204,7 @@ const executeDelete = async () => {
           </div>
         </div>
 
-        {/* MAQUETA VISUAL FIGMA: TABLA NUTRICIONAL Y RESEÑAS */}
+        {/* TABLA NUTRICIONAL Y RESEÑAS */}
         <section className="border-t border-gray-200 pt-12">
           <h2 className="text-2xl font-black text-[#1D1D1D] mb-6">Información Nutricional (Por porción)</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-14">
@@ -252,7 +252,7 @@ const executeDelete = async () => {
             </div>
           </div>
         </section>
-        {/* MODAL DE CONFIRMACIÓN DE ELIMINADO (ESTILO FIGMA) */}
+        {/* MODAL DE CONFIRMACIÓN DE ELIMINADO */}
         <CustomModal
           isOpen={showDeleteModal}
           onClose={() => setShowDeleteModal(false)}
