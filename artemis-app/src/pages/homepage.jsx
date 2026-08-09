@@ -2,22 +2,13 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
 import RecipeCard from '../components/RecipeCard';
-// Si ya no usas estos modales, puedes borrar estas dos líneas y las etiquetas de abajo
-import SignupModal from '../components/SignupModal';
-import LoginModal from '../components/LoginModal';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  
-  // 1. ÚNICO estado para manejar la búsqueda (limpiamos el código viejo)
   const [searchQuery, setSearchQuery] = useState('');
-  
-  const [isSignupOpen, setIsSignupOpen] = useState(false);
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Cargar las recetas para la sección de "Comidas Fáciles"
   useEffect(() => {
     fetch('http://localhost:5000/api/recipes')
       .then((res) => res.json())
@@ -28,13 +19,14 @@ export default function HomePage() {
         setLoading(false);
       })
       .catch((err) => {
-        console.error('[ERROR - API]: No se pudo conectar al backend ->', err);
+        console.error('[ERROR - API]:', err);
         setLoading(false);
       });
   }, []);
+
   return (
     <div className="min-h-screen bg-[#FBFBFB] flex flex-col font-sans">
-      <Navbar onLoginClick={() => setIsLoginOpen(true)} />
+      <Navbar />
 
       {/* Sub-menú de Categorías */}
       <div className="bg-white border-b border-gray-200 py-3 px-6 shadow-sm flex justify-center gap-8 md:gap-16 text-lg font-medium text-[#1D1D1D]">
@@ -51,7 +43,7 @@ export default function HomePage() {
           encuentra recetas que saben delicioso!
         </h1>
 
-        {/* FORMULARIO DE BÚSQUEDA CON BOTÓN VERDE */}
+        {/* FORMULARIO DE BÚSQUEDA BLINDADO */}
         <form 
           onSubmit={(e) => {
             e.preventDefault();
@@ -75,7 +67,6 @@ export default function HomePage() {
             className="w-full text-[#1D1D1D] placeholder-gray-400 text-lg md:text-xl bg-transparent focus:outline-none"
           />
           
-          {/* AQUÍ ESTÁ EL BOTÓN VERDE */}
           <button
             type="submit"
             className="bg-[#2E5834] text-white px-8 py-3 rounded-full font-bold hover:bg-[#1f3d23] transition-colors ml-4 shadow-sm shrink-0 cursor-pointer"
@@ -119,10 +110,6 @@ export default function HomePage() {
           )}
         </div>
       </section>
-
-      {/* Modales (Opcionales) */}
-      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onSwitchToSignup={() => setIsSignupOpen(true)} />
-      <SignupModal isOpen={isSignupOpen} onClose={() => setIsSignupOpen(false)} onSwitchToLogin={() => setIsLoginOpen(true)} />
     </div>
   );
 }
