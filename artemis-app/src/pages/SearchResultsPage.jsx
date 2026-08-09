@@ -6,11 +6,10 @@ import RecipeCard from '../components/RecipeCard';
 export default function SearchResultsPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-
   // Leemos qué categoría o búsqueda viene en la URL
   const categoriaSeleccionada = searchParams.get('categoria') || '';
   const textoBusqueda = searchParams.get('buscar') || '';
-
+  
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
 
