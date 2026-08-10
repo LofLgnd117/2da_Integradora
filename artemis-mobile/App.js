@@ -1,16 +1,17 @@
 import * as React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack'; // Importamos el Stack
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons'; 
 
-// Importamos todas tus pantallas
-import StartScreen from './src/screens/StartScreen'; // Tu nueva pantalla
+// Importamos todas las pantallas
+import StartScreen from './src/screens/StartScreen'; 
 import HomeScreen from './src/screens/HomeScreen';
 import SearchScreen from './src/screens/SearchScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
+import RecipeDetailScreen from './src/screens/RecipeDetailScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator(); // Creamos el mazo de cartas
@@ -59,6 +60,8 @@ export default function App() {
   
       {/* Carta 4: La aplicación principal (Las pestañas) */}
       <Stack.Screen name="Main" component={MainTabs} />
+      {/* Carta 5: Detalle de la receta */}
+      <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
