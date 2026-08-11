@@ -12,6 +12,7 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
 import RecipeDetailScreen from './src/screens/RecipeDetailScreen';
+import SavedScreen from './src/screens/SavedScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator(); // Creamos el mazo de cartas
@@ -26,6 +27,7 @@ function MainTabs() {
           if (route.name === 'Inicio') iconName = focused ? 'home' : 'home-outline';
           else if (route.name === 'Buscar') iconName = focused ? 'search' : 'search-outline';
           else if (route.name === 'Perfil') iconName = focused ? 'person' : 'person-outline';
+          else if (route.name === 'Guardados') iconName = focused ? 'bookmark' : 'bookmark-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#2E5834',
@@ -39,6 +41,7 @@ function MainTabs() {
       <Tab.Screen name="Inicio" component={HomeScreen} />
       <Tab.Screen name="Buscar" component={SearchScreen} />
       <Tab.Screen name="Perfil" component={ProfileScreen} />
+      <Tab.Screen name="Guardados" component={SavedScreen} />
     </Tab.Navigator>
   );
 }
@@ -47,6 +50,7 @@ function MainTabs() {
 export default function App() {
   return (
     <NavigationContainer>
+
       {/* headerShown: false oculta la barra superior fea del Stack */}
       <Stack.Navigator screenOptions={{ headerShown: false }}>
       {/* Carta 1: Bienvenida */}
@@ -60,9 +64,12 @@ export default function App() {
   
       {/* Carta 4: La aplicación principal (Las pestañas) */}
       <Stack.Screen name="Main" component={MainTabs} />
+      
       {/* Carta 5: Detalle de la receta */}
       <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
+
       </Stack.Navigator>
+
     </NavigationContainer>
   );
 }

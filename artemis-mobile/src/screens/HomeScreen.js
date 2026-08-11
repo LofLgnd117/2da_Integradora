@@ -25,7 +25,6 @@ export default function HomeScreen({ navigation }) {
           />
           <TouchableOpacity 
             className="min-h-[48px] min-w-[48px] items-center justify-center"
-            // Suponiendo que tienes una pantalla Profile en tu navegación
             onPress={() => navigation.navigate('Profile')} 
           >
             <Image
@@ -54,7 +53,7 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
 
-        {/* CATEGORÍAS (Deslizables horizontalmente) */}
+        {/* CATEGORÍAS */}
         <View className="mb-8">
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 24 }}>
             {categories.map((cat, index) => (
@@ -64,12 +63,10 @@ export default function HomeScreen({ navigation }) {
                 className={`min-h-[48px] justify-center px-6 mr-3 rounded-full border ${
                   activeTab === cat 
                     ? 'bg-[#0A3323] border-[#0A3323]' 
-                    : 'bg-transparent border-[#F7F4D5]/30' // Fondo transparente para que el texto F7F4D5 se lea
+                    : 'bg-transparent border-[#F7F4D5]/30'
                 }`}
               >
-                <Text className={`text-base font-bold ${
-                  activeTab === cat ? 'text-[#F7F4D5]' : 'text-[#F7F4D5]'
-                }`}>
+                <Text className="text-base font-bold text-[#F7F4D5]">
                   {cat}
                 </Text>
               </TouchableOpacity>
@@ -84,7 +81,6 @@ export default function HomeScreen({ navigation }) {
               Recetas Destacadas
             </Text>
             <TouchableOpacity className="min-h-[48px] justify-center">
-              {/* Cambiado el gris por el F7F4D5 como pediste */}
               <Text className="text-[#F7F4D5] text-sm font-bold">Ver todo</Text>
             </TouchableOpacity>
           </View>
@@ -92,8 +88,12 @@ export default function HomeScreen({ navigation }) {
           {/* GRID DE 2 COLUMNAS PARA RECETAS */}
           <View className="flex-row flex-wrap justify-between">
             
-            {/* TARJETA 1 */}
-            <View className="w-[48%] mb-6">
+            {/* TARJETA 1 (AHORA ES FUNCIONAL [CLICKEABLE]) */}
+            <TouchableOpacity 
+              className="w-[48%] mb-6"
+              onPress={() => navigation.navigate('RecipeDetail')}
+              activeOpacity={0.8}
+            >
               <Image
                 source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/jetwaqsi_expires_30_days.png" }}
                 className="w-full h-40 rounded-2xl mb-3 bg-[#E5E5E5]"
@@ -112,10 +112,14 @@ export default function HomeScreen({ navigation }) {
                   <Text className="text-[#F7F4D5] text-xs font-medium">25 min</Text>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
 
-            {/* TARJETA 2 */}
-            <View className="w-[48%] mb-6">
+            {/* TARJETA 2 (AHORA ES FUNCIONAL [CLICKEABLE]) */}
+            <TouchableOpacity 
+              className="w-[48%] mb-6"
+              onPress={() => navigation.navigate('RecipeDetail')}
+              activeOpacity={0.8}
+            >
               <Image
                 source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/8vgwisuy_expires_30_days.png" }}
                 className="w-full h-40 rounded-2xl mb-3 bg-[#E5E5E5]"
@@ -134,10 +138,14 @@ export default function HomeScreen({ navigation }) {
                   <Text className="text-[#F7F4D5] text-xs font-medium">40 min</Text>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
 
-            {/* TARJETA 3 */}
-            <View className="w-[48%] mb-6">
+            {/* TARJETA 3 (AHORA ES FUNCIONAL [CLICKEABLE]) */}
+            <TouchableOpacity 
+              className="w-[48%] mb-6"
+              onPress={() => navigation.navigate('RecipeDetail')}
+              activeOpacity={0.8}
+            >
               <Image
                 source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/rlaax0sz_expires_30_days.png" }}
                 className="w-full h-40 rounded-2xl mb-3 bg-[#E5E5E5]"
@@ -156,10 +164,14 @@ export default function HomeScreen({ navigation }) {
                   <Text className="text-[#F7F4D5] text-xs font-medium">15 min</Text>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
 
-            {/* TARJETA 4 */}
-            <View className="w-[48%] mb-6">
+            {/* TARJETA 4 (AHORA ES FUNCIONAL [CLICKEABLE]) */}
+            <TouchableOpacity 
+              className="w-[48%] mb-6"
+              onPress={() => navigation.navigate('RecipeDetail')}
+              activeOpacity={0.8}
+            >
               <Image
                 source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/bp6og5vu_expires_30_days.png" }}
                 className="w-full h-40 rounded-2xl mb-3 bg-[#E5E5E5]"
@@ -178,7 +190,7 @@ export default function HomeScreen({ navigation }) {
                   <Text className="text-[#F7F4D5] text-xs font-medium">30 min</Text>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
             
           </View>
         </View>
