@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, ScrollView, Text, Image, TouchableOpacity, StatusBar, ActivityIndicator } from "react-native";
+import { View, ScrollView, Text, Image, TouchableOpacity, StatusBar, ActivityIndicator, Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function RecipeDetailScreen({ route, navigation }) {
@@ -7,6 +7,9 @@ export default function RecipeDetailScreen({ route, navigation }) {
   const [recipe, setRecipe] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Ingredientes'); 
+  
+  // NUEVO ESTADO: Controla si el modal personalizado se ve o no
+  const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
 
   useEffect(() => {
     const fetchRecipeDetail = async () => {
@@ -23,6 +26,25 @@ export default function RecipeDetailScreen({ route, navigation }) {
 
     fetchRecipeDetail();
   }, [recipeId]);
+
+  // NUEVA FUNCIÓN: Ejecuta el borrado cuando el usuario confirma en el modal
+  const confirmDelete = async () => {
+    setDeleteModalVisible(false); // Cerramos el modal primero
+    try {
+      const response = await fetch(`http://10.40.92.65:3000/api/recetas/${recipeId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        navigation.navigate('Main'); 
+      } else {
+        alert("Error al intentar eliminar la receta.");
+      }
+    } catch (error) {
+      console.error("Error de conexión al eliminar:", error);
+      alert("Hubo un error de conexión.");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -61,9 +83,21 @@ export default function RecipeDetailScreen({ route, navigation }) {
             <TouchableOpacity onPress={() => navigation.goBack()} className="w-10 h-10 bg-[#F7F4D5]/90 rounded-full items-center justify-center">
               <Text className="text-black text-xl font-bold">←</Text>
             </TouchableOpacity>
-            <TouchableOpacity className="w-10 h-10 bg-[#F7F4D5]/90 rounded-full items-center justify-center">
-              <Text className="text-black text-xl">🔖</Text>
-            </TouchableOpacity>
+            
+            {/* BOTONES DERECHOS */}
+            <View className="flex-row items-center">
+              <TouchableOpacity 
+                onPress={() => setDeleteModalVisible(true)} // Abre el modal visual
+                className="w-10 h-10 bg-[#FEE2E2]/90 rounded-full items-center justify-center mr-3 border border-[#CC3333]/20"
+              >
+                <Text className="text-[#CC3333] text-lg">🗑️</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity className="w-10 h-10 bg-[#F7F4D5]/90 rounded-full items-center justify-center">
+                <Text className="text-black text-xl">🔖</Text>
+              </TouchableOpacity>
+            </View>
+            
           </View>
         </View>
 
@@ -146,7 +180,7 @@ export default function RecipeDetailScreen({ route, navigation }) {
                 <Text className="text-black text-center mt-4">Aún no hay instrucciones registradas.</Text>
               )}
 
-              {/* CONSEJO DEL CHEF (Dinámico desde la BD) */}
+              {/* CONSEJO DEL CHEF */}
               {recipe.chef_tips && (
                 <View className="bg-[#EAECE3] rounded-2xl p-5 mt-4 border border-[#839958]/20">
                   <View className="flex-row items-center mb-2">
@@ -163,6 +197,50 @@ export default function RecipeDetailScreen({ route, navigation }) {
 
         </View>
       </ScrollView>
+
+      {/* ==========================================
+          MODAL DE CONFIRMACIÓN DE ELIMINACIÓN
+          ========================================== */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isDeleteModalVisible}
+        onRequestClose={() => setDeleteModalVisible(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/60 px-6">
+          <View className="w-full bg-[#2E5834] rounded-[24px] p-8 items-center shadow-2xl">
+            
+            <Text className="text-[#0A3323] text-xl font-bold mb-4">Ártemis</Text>
+            
+            <View className="w-20 h-20 bg-[#FFAEAE] rounded-full items-center justify-center mb-6">
+              <Text className="text-[#CC3333] text-4xl font-bold">!</Text>
+            </View>
+
+            <Text className="text-[#0A3323] text-2xl font-bold mb-2 text-center">
+              Eliminar Receta
+            </Text>
+            <Text className="text-[#F7F4D5] text-sm text-center mb-6 px-2">
+              ¿Estás seguro de que deseas eliminar esta receta? Esta acción es permanente y se borrará de toda la plataforma.
+            </Text>
+
+            <TouchableOpacity 
+              onPress={confirmDelete}
+              className="w-full min-h-[56px] bg-[#CC3333] rounded-xl items-center justify-center mb-4"
+            >
+              <Text className="text-white text-base font-bold">Sí, eliminar receta</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={() => setDeleteModalVisible(false)}
+              className="w-full min-h-[56px] bg-[#839958] border border-[#F7F4D5]/30 rounded-xl items-center justify-center"
+            >
+              <Text className="text-[#F7F4D5] text-base font-bold">Cancelar</Text>
+            </TouchableOpacity>
+
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }

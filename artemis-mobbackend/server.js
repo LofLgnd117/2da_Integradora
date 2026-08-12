@@ -168,7 +168,42 @@ app.post('/api/recetas', async (req, res) => {
   }
 });
 
+// ==========================================
+// RUTA 4: Eliminar una receta por su ID (DELETE)
+// ==========================================
+app.delete('/api/recetas/:id', async (req, res) => {
+  try {
+    const recipeId = req.params.id;
 
+    // Iniciamos una transacción de seguridad
+    await db.query('BEGIN');
+
+    // 1. Borramos los ingredientes vinculados a esta receta
+    await db.query('DELETE FROM recipe_ingredients WHERE recipe_id = $1', [recipeId]);
+    
+    // 2. Borramos los pasos vinculados a esta receta
+    await db.query('DELETE FROM recipe_steps WHERE recipe_id = $1', [recipeId]);
+
+    // 3. Finalmente, borramos la receta principal
+    const result = await db.query('DELETE FROM recipes WHERE id = $1 RETURNING id', [recipeId]);
+
+    // Si no encontró ninguna receta para borrar, cancelamos
+    if (result.rowCount === 0) {
+      await db.query('ROLLBACK');
+      return res.status(404).json({ error: 'Receta no encontrada' });
+    }
+
+    // Si todo salió bien, confirmamos los cambios
+    await db.query('COMMIT');
+    res.json({ mensaje: '¡Receta eliminada exitosamente de la base de datos!' });
+
+  } catch (error) {
+    // Si algo falla, deshacemos los cambios
+    await db.query('ROLLBACK');
+    console.error("Error al eliminar la receta:", error);
+    res.status(500).json({ error: 'Hubo un error al intentar eliminar la receta' });
+  }
+});
 
 
 
