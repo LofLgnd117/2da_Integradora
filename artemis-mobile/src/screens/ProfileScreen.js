@@ -14,13 +14,18 @@ export default function ProfileScreen({ navigation }) {
         
         {/* ENCABEZADO: Íconos superiores */}
         <View className="flex-row justify-between items-center px-6 py-4">
-          <TouchableOpacity className="w-10 h-10 items-start justify-center">
+          {/* BOTÓN DE AJUSTES DE CUENTA */}
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('AccountSettings')}
+            className="w-10 h-10 items-start justify-center"
+          >
             <Image
               source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/48xxdivq_expires_30_days.png" }}
               resizeMode="contain"
               className="w-6 h-6"
             />
           </TouchableOpacity>
+          
           <TouchableOpacity className="w-10 h-10 items-end justify-center">
             <Image
               source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/wyt7925f_expires_30_days.png" }}
@@ -63,11 +68,16 @@ export default function ProfileScreen({ navigation }) {
 
         {/* BOTONES DE ACCIÓN */}
         <View className="flex-row items-center mx-6 mb-8">
-          <TouchableOpacity className="flex-1 bg-[#0A3323] rounded-xl py-4 items-center mr-3">
+          {/* BOTÓN DE EDITAR PERFIL */}
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('EditProfile')}
+            className="flex-1 bg-[#0A3323] rounded-xl py-4 items-center mr-3"
+          >
             <Text className="text-[#F7F4D5] text-base font-bold">
               Editar Perfil
             </Text>
           </TouchableOpacity>
+          
           <TouchableOpacity className="w-14 h-14 bg-[#0A3323] rounded-xl items-center justify-center">
             <Image
               source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/299zevfv_expires_30_days.png" }}
@@ -75,6 +85,7 @@ export default function ProfileScreen({ navigation }) {
               className="w-6 h-6"
               style={{ tintColor: '#F7F4D5' }}
             />
+            onPress={() => navigation.navigate('AddRecipe')}
           </TouchableOpacity>
         </View>
 

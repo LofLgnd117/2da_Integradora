@@ -13,6 +13,9 @@ import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
 import RecipeDetailScreen from './src/screens/RecipeDetailScreen';
 import SavedScreen from './src/screens/SavedScreen';
+import EditProfileScreen from './src/screens/EditProfileScreen';
+import AccountSettingsScreen from './src/screens/AccountSettingsScreen';
+import AddRecipeScreen from './src/screens/AddRecipeScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator(); // Creamos el mazo de cartas
@@ -67,6 +70,15 @@ export default function App() {
       
       {/* Carta 5: Detalle de la receta */}
       <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
+      
+      {/* Carta 6: Editar perfil */}
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+      
+      {/* Carta 7: Configuración de cuenta */}
+      <Stack.Screen name="AccountSettings" component={AccountSettingsScreen} />
+
+      {/* Carta 8: Agregar receta */}
+      <Stack.Screen name="AddRecipe" component={AddRecipeScreen} />
 
       </Stack.Navigator>
 
