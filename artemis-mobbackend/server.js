@@ -97,6 +97,81 @@ app.get('/api/recetas/:id', async (req, res) => {
   }
 });
 
+// ==========================================
+// RUTA 3: Crear una nueva receta (CON INGREDIENTES Y PASOS)
+// ==========================================
+app.post('/api/recetas', async (req, res) => {
+  try {
+    // Extraemos todos los datos (incluyendo las nuevas listas y el consejo)
+    const { titulo, descripcion, porciones, tiempo, categoria, chef_tips, ingredientes, pasos } = req.body;
+    const userId = 1; 
+    const imagenPorDefecto = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80";
+
+    // Iniciamos una TRANSACCIÓN (Si algo falla, se cancela todo)
+    await db.query('BEGIN');
+
+    // 1. Insertamos la receta principal
+    const insertRecipeQuery = `
+      INSERT INTO recipes (user_id, title, description, servings, total_time_minutes, category, image_url, chef_tips)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING id;
+    `;
+    const recipeValues = [
+      userId, 
+      titulo || 'Receta sin título', 
+      descripcion || '', 
+      parseInt(porciones) || 4, 
+      parseInt(tiempo) || 30, 
+      categoria || 'Comidas y Platillos', 
+      imagenPorDefecto,
+      chef_tips || null // Guardamos el consejo del chef
+    ];
+    
+    const recipeResult = await db.query(insertRecipeQuery, recipeValues);
+    const newRecipeId = recipeResult.rows[0].id;
+
+    // 2. Insertamos los Ingredientes
+    if (ingredientes && ingredientes.length > 0) {
+      const ingQuery = `INSERT INTO recipe_ingredients (recipe_id, name, quantity, unit, sort_order) VALUES ($1, $2, $3, $4, $5)`;
+      for (let i = 0; i < ingredientes.length; i++) {
+        const ing = ingredientes[i];
+        if (ing.name.trim() !== '') {
+          // Guardamos la cantidad y dejamos la unidad vacía para simplificar
+          await db.query(ingQuery, [newRecipeId, ing.name, ing.quantity, '', i + 1]);
+        }
+      }
+    }
+
+    // 3. Insertamos los Pasos (Instrucciones)
+    if (pasos && pasos.length > 0) {
+      const stepQuery = `INSERT INTO recipe_steps (recipe_id, step_number, instruction_text) VALUES ($1, $2, $3)`;
+      for (let i = 0; i < pasos.length; i++) {
+        if (pasos[i].trim() !== '') {
+          await db.query(stepQuery, [newRecipeId, i + 1, pasos[i]]);
+        }
+      }
+    }
+
+    // Confirmamos la transacción
+    await db.query('COMMIT');
+
+    res.status(201).json({
+      mensaje: '¡Receta creada con éxito con todos sus detalles!',
+      nueva_receta_id: newRecipeId
+    });
+
+  } catch (error) {
+    // Si hubo un error, revertimos todo para no dejar datos a medias
+    await db.query('ROLLBACK');
+    console.error("Error al guardar la nueva receta:", error);
+    res.status(500).json({ error: 'Hubo un error al guardar la receta en la base de datos' });
+  }
+});
+
+
+
+
+
 // Levantar el servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

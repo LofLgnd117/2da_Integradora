@@ -3,44 +3,63 @@ import { View, ScrollView, Text, Image, TouchableOpacity, TextInput, StatusBar }
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function AddRecipeScreen({ navigation }) {
-  // Estados para guardar la información del formulario
+  // Estados Básicos (Ya sin la dificultad)
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [servings, setServings] = useState('');
   const [prepTime, setPrepTime] = useState('');
   const [category, setCategory] = useState('');
-  const [difficulty, setDifficulty] = useState('Media'); // Estado para los botones de dificultad
-  const [ingredient, setIngredient] = useState('');
+  
+  // Estado para el Consejo del Chef
+  const [chefTips, setChefTips] = useState('');
+
+  // Estados Dinámicos para Listas
+  const [ingredients, setIngredients] = useState([{ name: '', quantity: '' }]);
+  const [steps, setSteps] = useState(['']);
+
+  // --- Funciones para Ingredientes ---
+  const addIngredient = () => setIngredients([...ingredients, { name: '', quantity: '' }]);
+  const removeIngredient = (index) => setIngredients(ingredients.filter((_, i) => i !== index));
+  const updateIngredient = (text, index, field) => {
+    const newIngredients = [...ingredients];
+    newIngredients[index][field] = text;
+    setIngredients(newIngredients);
+  };
+
+  // --- Funciones para Pasos ---
+  const addStep = () => setSteps([...steps, '']);
+  const removeStep = (index) => setSteps(steps.filter((_, i) => i !== index));
+  const updateStep = (text, index) => {
+    const newSteps = [...steps];
+    newSteps[index] = text;
+    setSteps(newSteps);
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-[#839958]">
       <StatusBar barStyle="light-content" backgroundColor="#839958" />
       
-      {/* ENCABEZADO DE NAVEGACIÓN */}
+      {/* ENCABEZADO */}
       <View className="flex-row items-center px-6 py-4 border-b border-[#F7F4D5]/20">
         <TouchableOpacity onPress={() => navigation.goBack()} className="w-10 h-10 justify-center">
           <Text className="text-black text-2xl font-bold">←</Text>
         </TouchableOpacity>
-        <Text className="text-black text-xl font-bold flex-1 text-center mr-10">
-          Agregar Receta
-        </Text>
+        <Text className="text-black text-xl font-bold flex-1 text-center mr-10">Agregar Receta</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 24 }} showsVerticalScrollIndicator={false}>
         
         {/* BOTÓN FOTO DE PORTADA */}
-        <TouchableOpacity 
-          className="bg-[#F7F4D5]/80 border-2 border-dashed border-[#0A3323]/30 rounded-2xl py-12 items-center mb-8"
-        >
+        <TouchableOpacity className="bg-[#F7F4D5]/80 border-2 border-dashed border-[#0A3323]/30 rounded-2xl py-12 items-center mb-8">
           <Text className="text-[#0A3323] text-4xl mb-2">📷</Text>
           <Text className="text-[#0A3323] text-base font-bold">Agregar Foto de Portada</Text>
         </TouchableOpacity>
 
-        {/* TÍTULO */}
+        {/* TÍTULO Y DESCRIPCIÓN */}
         <View className="mb-6">
           <Text className="text-black text-base font-bold mb-2">Título de la Receta</Text>
           <TextInput
-            placeholder="Ej. Lasaña Clásica"
+            placeholder="Ej. Ensalada de Pollo"
             placeholderTextColor="#839958"
             value={title}
             onChangeText={setTitle}
@@ -48,18 +67,17 @@ export default function AddRecipeScreen({ navigation }) {
           />
         </View>
 
-        {/* DESCRIPCIÓN */}
         <View className="mb-6">
           <Text className="text-black text-base font-bold mb-2">Descripción</Text>
           <TextInput
-            placeholder="Describe tu platillo..."
+            placeholder="Un platillo fresco..."
             placeholderTextColor="#839958"
             value={description}
             onChangeText={setDescription}
             multiline
-            numberOfLines={4}
+            numberOfLines={3}
             textAlignVertical="top"
-            className="bg-[#F7F4D5] text-black text-base rounded-xl px-4 py-3 min-h-[100px]"
+            className="bg-[#F7F4D5] text-black text-base rounded-xl px-4 py-3 min-h-[80px]"
           />
         </View>
 
@@ -80,7 +98,7 @@ export default function AddRecipeScreen({ navigation }) {
             <Text className="text-black text-base font-bold mb-2">Tiempo Prep.</Text>
             <View className="flex-row items-center bg-[#F7F4D5] rounded-xl px-4 py-3">
               <TextInput
-                placeholder="30"
+                placeholder="60"
                 placeholderTextColor="#839958"
                 value={prepTime}
                 onChangeText={setPrepTime}
@@ -93,7 +111,7 @@ export default function AddRecipeScreen({ navigation }) {
         </View>
 
         {/* CATEGORÍA */}
-        <View className="mb-6">
+        <View className="mb-8">
           <Text className="text-black text-base font-bold mb-2">Categoría</Text>
           <TouchableOpacity className="flex-row justify-between items-center bg-[#F7F4D5] rounded-xl px-4 py-4">
             <Text className="text-[#0A3323] text-base">Selecciona una categoría</Text>
@@ -101,84 +119,123 @@ export default function AddRecipeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* DIFICULTAD (Botones interactivos) */}
-        <View className="mb-8">
-          <Text className="text-black text-base font-bold mb-3">Dificultad</Text>
-          <View className="flex-row justify-between">
-            {['Fácil', 'Media', 'Difícil'].map((level) => (
-              <TouchableOpacity
-                key={level}
-                onPress={() => setDifficulty(level)}
-                className={`flex-1 items-center py-3 rounded-full mx-1 border border-[#0A3323]/20 ${
-                  difficulty === level ? 'bg-[#0A3323]' : 'bg-[#F7F4D5]'
-                }`}
-              >
-                <Text className={`font-bold text-base ${
-                  difficulty === level ? 'text-[#F7F4D5]' : 'text-[#0A3323]'
-                }`}>
-                  {level}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* INGREDIENTES */}
+        {/* INGREDIENTES DINÁMICOS */}
         <View className="mb-8">
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-black text-xl font-bold">Ingredientes</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={addIngredient}>
               <Text className="text-[#F7F4D5] text-sm font-bold">+ Añadir Ingrediente</Text>
             </TouchableOpacity>
           </View>
           
-          <View className="flex-row items-center mb-2">
-            <TextInput
-              placeholder="Ej. Hojas de albahaca"
-              placeholderTextColor="#839958"
-              value={ingredient}
-              onChangeText={setIngredient}
-              className="flex-1 bg-[#F7F4D5] text-black text-base rounded-xl px-4 py-3 mr-2"
-            />
-            <TextInput
-              placeholder="1 taza"
-              placeholderTextColor="#839958"
-              className="w-24 bg-[#F7F4D5] text-black text-base rounded-xl px-4 py-3 text-center mr-2"
-            />
-            <TouchableOpacity className="w-12 h-12 bg-[#FEE2E2] rounded-xl items-center justify-center">
-              <Text className="text-[#CC3333] text-lg">🗑️</Text>
-            </TouchableOpacity>
-          </View>
+          {ingredients.map((ing, index) => (
+            <View key={index} className="flex-row items-center mb-3">
+              <TextInput
+                placeholder="Ej. Lechuga"
+                placeholderTextColor="#839958"
+                value={ing.name}
+                onChangeText={(text) => updateIngredient(text, index, 'name')}
+                className="flex-1 bg-[#F7F4D5] text-black text-base rounded-xl px-4 py-3 mr-2"
+              />
+              <TextInput
+                placeholder="Ej. 4 hojas"
+                placeholderTextColor="#839958"
+                value={ing.quantity}
+                onChangeText={(text) => updateIngredient(text, index, 'quantity')}
+                className="w-28 bg-[#F7F4D5] text-black text-base rounded-xl px-4 py-3 text-center mr-2"
+              />
+              <TouchableOpacity 
+                onPress={() => removeIngredient(index)}
+                className="w-12 h-12 bg-[#FEE2E2] rounded-xl items-center justify-center border border-[#CC3333]/20"
+              >
+                <Text className="text-[#CC3333] text-lg">🗑️</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
         </View>
 
-        {/* INSTRUCCIONES */}
+        {/* PASOS DINÁMICOS */}
         <View className="mb-8">
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-black text-xl font-bold">Instrucciones</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={addStep}>
               <Text className="text-[#F7F4D5] text-sm font-bold">+ Añadir Paso</Text>
             </TouchableOpacity>
           </View>
           
-          <View className="flex-row mb-4">
-            <View className="w-8 h-8 bg-[#0A3323] rounded-full items-center justify-center mr-3 mt-1">
-              <Text className="text-[#F7F4D5] font-bold">1</Text>
+          {steps.map((step, index) => (
+            <View key={index} className="flex-row mb-4">
+              <View className="w-8 h-8 bg-[#0A3323] rounded-full items-center justify-center mr-3 mt-1">
+                <Text className="text-[#F7F4D5] font-bold">{index + 1}</Text>
+              </View>
+              <View className="flex-1 flex-row">
+                <TextInput
+                  placeholder="Describe el paso a paso..."
+                  placeholderTextColor="#839958"
+                  value={step}
+                  onChangeText={(text) => updateStep(text, index)}
+                  multiline
+                  className="flex-1 bg-[#F7F4D5] text-black text-base rounded-xl px-4 py-3 min-h-[60px]"
+                />
+                <TouchableOpacity 
+                  onPress={() => removeStep(index)}
+                  className="w-12 h-12 bg-[#FEE2E2] rounded-xl items-center justify-center ml-2 mt-1 border border-[#CC3333]/20"
+                >
+                  <Text className="text-[#CC3333] text-lg">🗑️</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            <TextInput
-              placeholder="Lava y seca la albahaca antes de licuarla..."
-              placeholderTextColor="#839958"
-              multiline
-              className="flex-1 bg-[#F7F4D5] text-black text-base rounded-xl px-4 py-3 min-h-[80px]"
-            />
+          ))}
+        </View>
+
+        {/* CONSEJO DEL CHEF */}
+        <View className="mb-10 bg-[#EAECE3] p-5 rounded-2xl border border-[#839958]/20">
+          <View className="flex-row items-center mb-3">
+            <Text className="text-xl mr-2">💡</Text>
+            <Text className="text-[#0A3323] text-base font-bold">Consejos del Chef (Opcional)</Text>
           </View>
+          <TextInput
+            placeholder="Añade un tip o secreto para esta receta..."
+            placeholderTextColor="#839958"
+            value={chefTips}
+            onChangeText={setChefTips}
+            multiline
+            className="bg-[#F7F4D5] text-black text-base rounded-xl px-4 py-3 min-h-[80px]"
+          />
         </View>
 
         {/* BOTÓN PUBLICAR RECETA */}
         <TouchableOpacity 
           className="bg-[#0A3323] rounded-xl py-4 items-center mb-8"
-          onPress={() => {
-            alert('¡Receta publicada!');
-            navigation.goBack();
+          onPress={async () => {
+            try {
+              const nuevaReceta = {
+                titulo: title,
+                descripcion: description,
+                porciones: servings,
+                tiempo: prepTime,
+                categoria: category || 'Comidas y Platillos',
+                chef_tips: chefTips,
+                ingredientes: ingredients.filter(i => i.name.trim() !== ''),
+                pasos: steps.filter(s => s.trim() !== '')
+              };
+
+              const response = await fetch('http://10.40.92.65:3000/api/recetas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(nuevaReceta)
+              });
+
+              if (response.ok) {
+                alert('¡Receta publicada con éxito!');
+                navigation.navigate('Inicio'); 
+              } else {
+                alert('Error al publicar la receta.');
+              }
+            } catch (error) {
+              console.error(error);
+              alert('Error de conexión con el servidor.');
+            }
           }}
         >
           <Text className="text-[#F7F4D5] text-lg font-bold">Publicar Receta</Text>
