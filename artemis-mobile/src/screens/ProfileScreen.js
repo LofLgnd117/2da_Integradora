@@ -78,14 +78,17 @@ export default function ProfileScreen({ navigation }) {
             </Text>
           </TouchableOpacity>
           
-          <TouchableOpacity className="w-14 h-14 bg-[#0A3323] rounded-xl items-center justify-center">
+         {/* BOTÓN CORREGIDO */}
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('AddRecipe')} 
+            className="w-14 h-14 bg-[#0A3323] rounded-xl items-center justify-center"
+          >
             <Image
               source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/299zevfv_expires_30_days.png" }}
               resizeMode="contain"
               className="w-6 h-6"
               style={{ tintColor: '#F7F4D5' }}
-            />
-            onPress={() => navigation.navigate('AddRecipe')}
+           />
           </TouchableOpacity>
         </View>
 

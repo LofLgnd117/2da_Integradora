@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -21,30 +22,60 @@ const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator(); // Creamos el mazo de cartas
 
 // Separamos tus pestañas en su propio componente
+// Separamos tus pestañas en su propio componente
 function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({ focused, color }) => {
           let iconName;
+          
+          // Asignación de íconos según la pantalla
           if (route.name === 'Inicio') iconName = focused ? 'home' : 'home-outline';
           else if (route.name === 'Buscar') iconName = focused ? 'search' : 'search-outline';
-          else if (route.name === 'Perfil') iconName = focused ? 'person' : 'person-outline';
+          else if (route.name === 'Agregar') iconName = focused ? 'add-circle' : 'add-circle-outline'; 
           else if (route.name === 'Guardados') iconName = focused ? 'bookmark' : 'bookmark-outline';
-          return <Ionicons name={iconName} size={size} color={color} />;
+          else if (route.name === 'Perfil') iconName = focused ? 'person' : 'person-outline';
+          
+          // Hacemos el ícono central un poco más grande
+          const iconSize = route.name === 'Agregar' ? 32 : 24;
+
+          return <Ionicons name={iconName} size={iconSize} color={color} />;
         },
-        tabBarActiveTintColor: '#2E5834',
-        tabBarInactiveTintColor: 'gray',
-        tabBarStyle: { paddingBottom: 5, height: 60 },
+        // Estilos idénticos a tu diseño de Figma
+        tabBarActiveTintColor: '#F7F4D5',     // Color crema cuando está seleccionado
+        tabBarInactiveTintColor: '#839958',   // Color verde oliva cuando no está seleccionado
+        tabBarShowLabel: false,               // Ocultamos los textos de abajo
+        tabBarStyle: { 
+          backgroundColor: '#0A3323',         // Fondo verde oscuro
+          borderTopWidth: 0,
+          height: 65,
+          paddingBottom: 10,
+          paddingTop: 10
+        },
         headerStyle: { backgroundColor: '#839958' },
         headerTintColor: '#fff',
         headerTitleStyle: { fontWeight: 'bold' },
       })}
     >
+      {/* ORDEN EXACTO COMO EN TU IMAGEN */}
       <Tab.Screen name="Inicio" component={HomeScreen} />
       <Tab.Screen name="Buscar" component={SearchScreen} />
-      <Tab.Screen name="Perfil" component={ProfileScreen} />
+      
+      {/* BOTÓN CENTRAL "+" */}
+      <Tab.Screen 
+        name="Agregar" 
+        component={View} // Componente vacío (dummy) porque nunca renderizamos esta pestaña
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault(); // Evita el comportamiento normal de la pestaña
+            navigation.navigate('AddRecipe'); // Lanza la pantalla del Stack
+          },
+        })}
+      />
+      
       <Tab.Screen name="Guardados" component={SavedScreen} />
+      <Tab.Screen name="Perfil" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
