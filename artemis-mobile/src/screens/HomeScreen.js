@@ -1,14 +1,35 @@
-import React, { useState } from "react";
-import { View, ScrollView, Text, Image, TextInput, TouchableOpacity, StatusBar } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, ScrollView, Text, Image, TextInput, TouchableOpacity, StatusBar, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen({ navigation }) {
-  // Estado para el buscador
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Estado para saber qué pestaña de categoría está activa
   const [activeTab, setActiveTab] = useState('Todo');
   const categories = ['Todo', 'Desayuno', 'Comida', 'Cena'];
+
+  // Nuevos estados para manejar los datos del backend
+  const [recipes, setRecipes] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Función para obtener las recetas desde tu servidor Node.js
+  useEffect(() => {
+    const fetchRecipes = async () => {
+      try {
+        // 🚨 CAMBIA ESTA IP POR TU DIRECCIÓN IPv4 REAL 🚨
+        const backendURL = 'http://10.40.92.65:3000/api/recetas'; 
+        
+        const response = await fetch(backendURL);
+        const data = await response.json();
+        setRecipes(data);
+      } catch (error) {
+        console.error("Error conectando al backend:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRecipes();
+  }, []);
 
   return (
     <SafeAreaView className="flex-1 bg-[#839958]">
@@ -16,7 +37,7 @@ export default function HomeScreen({ navigation }) {
       
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         
-        {/* ENCABEZADO (Logo y Foto de Perfil) */}
+        {/* ENCABEZADO */}
         <View className="flex-row justify-between items-center px-6 py-4">
           <Image
             source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/ofhp1p1q_expires_30_days.png" }}
@@ -28,7 +49,7 @@ export default function HomeScreen({ navigation }) {
             onPress={() => navigation.navigate('Profile')} 
           >
             <Image
-              source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/arukwc2q_expires_30_days.png" }}
+              source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/p0afafy0_expires_30_days.png" }}
               resizeMode="cover"
               className="w-12 h-12 rounded-full border-2 border-[#F7F4D5]"
             />
@@ -38,13 +59,9 @@ export default function HomeScreen({ navigation }) {
         {/* BUSCADOR */}
         <View className="px-6 mb-6">
           <View className="flex-row items-center bg-[#0A3323] border border-[#D9D9D9] rounded-2xl px-4 min-h-[56px]">
-            <Image
-              source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/ln6qbig1_expires_30_days.png" }}
-              resizeMode="contain"
-              className="w-5 h-5 opacity-80"
-            />
+            <Text className="text-xl opacity-80 mr-3">🔍</Text>
             <TextInput
-              className="flex-1 text-[#F7F4D5] text-base ml-3"
+              className="flex-1 text-[#F7F4D5] text-base"
               placeholder="Buscar recetas, chefs..."
               placeholderTextColor="#D9D9D980"
               value={searchQuery}
@@ -74,7 +91,7 @@ export default function HomeScreen({ navigation }) {
           </ScrollView>
         </View>
 
-        {/* SECCIÓN: RECETAS DESTACADAS */}
+        {/* SECCIÓN: RECETAS DESTACADAS (CONECTADA A POSTGRESQL) */}
         <View className="px-6 mb-8">
           <View className="flex-row justify-between items-center mb-5">
             <Text className="text-black text-2xl font-bold">
@@ -85,154 +102,43 @@ export default function HomeScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          {/* GRID DE 2 COLUMNAS PARA RECETAS */}
-          <View className="flex-row flex-wrap justify-between">
-            
-            {/* TARJETA 1 (AHORA ES FUNCIONAL [CLICKEABLE]) */}
-            <TouchableOpacity 
-              className="w-[48%] mb-6"
-              onPress={() => navigation.navigate('RecipeDetail')}
-              activeOpacity={0.8}
-            >
-              <Image
-                source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/jetwaqsi_expires_30_days.png" }}
-                className="w-full h-40 rounded-2xl mb-3 bg-[#E5E5E5]"
-              />
-              <Text className="text-black text-base font-bold mb-1 leading-tight" numberOfLines={2}>
-                Camarones al Ajillo
-              </Text>
-              <Text className="text-[#F7F4D5] text-sm mb-2">por Chef Marco</Text>
-              <View className="flex-row items-center">
-                <View className="flex-row items-center mr-3">
-                  <Image source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/4yokyams_expires_30_days.png" }} className="w-4 h-4 mr-1" />
-                  <Text className="text-black text-xs font-bold">4.8</Text>
-                </View>
-                <View className="flex-row items-center">
-                  <Image source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/smn7zpa7_expires_30_days.png" }} className="w-4 h-4 mr-1" style={{tintColor: '#F7F4D5'}} />
-                  <Text className="text-[#F7F4D5] text-xs font-medium">25 min</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
+          {/* Renderizado Condicional: Muestra el spinner mientras carga, y luego las recetas */}
+          {isLoading ? (
+            <ActivityIndicator size="large" color="#0A3323" className="mt-10" />
+          ) : (
+            <View className="flex-row flex-wrap justify-between">
+              
+              {/* MAPEAMOS LOS DATOS DEL SERVIDOR */}
+              {recipes.map((receta) => (
+                <TouchableOpacity 
+                  key={receta.id}
+                  className="w-[48%] mb-6"
+                  onPress={() => navigation.navigate('RecipeDetail', { recipeId: receta.id })}
+                  activeOpacity={0.8}
+                >
+                  <Image
+                    source={{ uri: receta.imagen || "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/jetwaqsi_expires_30_days.png" }}
+                    className="w-full h-40 rounded-2xl mb-3 bg-[#E5E5E5]"
+                  />
+                  <Text className="text-black text-base font-bold mb-1 leading-tight" numberOfLines={2}>
+                    {receta.titulo}
+                  </Text>
+                  <Text className="text-[#F7F4D5] text-sm mb-2" numberOfLines={1}>
+                    por {receta.chef}
+                  </Text>
+                  <View className="flex-row items-center">
+                    <View className="flex-row items-center mr-3">
+                      <Text className="text-black text-xs font-bold mr-1">⭐ 4.8</Text>
+                    </View>
+                    <View className="flex-row items-center">
+                      <Text className="text-[#F7F4D5] text-xs font-medium">⏱ {receta.tiempo} min</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
 
-            {/* TARJETA 2 (AHORA ES FUNCIONAL [CLICKEABLE]) */}
-            <TouchableOpacity 
-              className="w-[48%] mb-6"
-              onPress={() => navigation.navigate('RecipeDetail')}
-              activeOpacity={0.8}
-            >
-              <Image
-                source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/8vgwisuy_expires_30_days.png" }}
-                className="w-full h-40 rounded-2xl mb-3 bg-[#E5E5E5]"
-              />
-              <Text className="text-black text-base font-bold mb-1 leading-tight" numberOfLines={2}>
-                Risotto de Champiñones
-              </Text>
-              <Text className="text-[#F7F4D5] text-sm mb-2">por Sarah Jenkins</Text>
-              <View className="flex-row items-center">
-                <View className="flex-row items-center mr-3">
-                  <Image source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/po0bztgc_expires_30_days.png" }} className="w-4 h-4 mr-1" />
-                  <Text className="text-black text-xs font-bold">4.9</Text>
-                </View>
-                <View className="flex-row items-center">
-                  <Image source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/gg4f14z7_expires_30_days.png" }} className="w-4 h-4 mr-1" style={{tintColor: '#F7F4D5'}}/>
-                  <Text className="text-[#F7F4D5] text-xs font-medium">40 min</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-
-            {/* TARJETA 3 (AHORA ES FUNCIONAL [CLICKEABLE]) */}
-            <TouchableOpacity 
-              className="w-[48%] mb-6"
-              onPress={() => navigation.navigate('RecipeDetail')}
-              activeOpacity={0.8}
-            >
-              <Image
-                source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/rlaax0sz_expires_30_days.png" }}
-                className="w-full h-40 rounded-2xl mb-3 bg-[#E5E5E5]"
-              />
-              <Text className="text-black text-base font-bold mb-1 leading-tight" numberOfLines={2}>
-                Bowl de Frutos Rojos
-              </Text>
-              <Text className="text-[#F7F4D5] text-sm mb-2">por Elena Gómez</Text>
-              <View className="flex-row items-center">
-                <View className="flex-row items-center mr-3">
-                  <Image source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/vq9m3zh2_expires_30_days.png" }} className="w-4 h-4 mr-1" />
-                  <Text className="text-black text-xs font-bold">4.7</Text>
-                </View>
-                <View className="flex-row items-center">
-                  <Image source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/s3bwmaw4_expires_30_days.png" }} className="w-4 h-4 mr-1" style={{tintColor: '#F7F4D5'}}/>
-                  <Text className="text-[#F7F4D5] text-xs font-medium">15 min</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-
-            {/* TARJETA 4 (AHORA ES FUNCIONAL [CLICKEABLE]) */}
-            <TouchableOpacity 
-              className="w-[48%] mb-6"
-              onPress={() => navigation.navigate('RecipeDetail')}
-              activeOpacity={0.8}
-            >
-              <Image
-                source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/bp6og5vu_expires_30_days.png" }}
-                className="w-full h-40 rounded-2xl mb-3 bg-[#E5E5E5]"
-              />
-              <Text className="text-black text-base font-bold mb-1 leading-tight" numberOfLines={2}>
-                Tacos Clásicos de Res
-              </Text>
-              <Text className="text-[#F7F4D5] text-sm mb-2">por Maestro Taquero</Text>
-              <View className="flex-row items-center">
-                <View className="flex-row items-center mr-3">
-                  <Image source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/tnl8lqxq_expires_30_days.png" }} className="w-4 h-4 mr-1" />
-                  <Text className="text-black text-xs font-bold">4.6</Text>
-                </View>
-                <View className="flex-row items-center">
-                  <Image source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/t81dthaz_expires_30_days.png" }} className="w-4 h-4 mr-1" style={{tintColor: '#F7F4D5'}}/>
-                  <Text className="text-[#F7F4D5] text-xs font-medium">30 min</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-            
-          </View>
-        </View>
-
-        {/* SECCIÓN: ÚLTIMOS ARTÍCULOS */}
-        <View className="px-6 mb-4">
-          <Text className="text-black text-2xl font-bold mb-5">
-            Últimos Artículos
-          </Text>
-
-          {/* ARTÍCULO 1 */}
-          <TouchableOpacity className="flex-row items-center bg-[#8F9E70] rounded-2xl p-3 mb-4">
-            <Image
-              source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/vasw69kx_expires_30_days.png" }}
-              className="w-20 h-20 rounded-xl bg-[#E5E5E5]"
-            />
-            <View className="flex-1 ml-4">
-              <Text className="text-black text-base font-bold mb-1" numberOfLines={2}>
-                10 Especias Secretas para la Cocina Italiana
-              </Text>
-              <Text className="text-[#F7F4D5] text-xs font-medium mt-1">
-                5 min lectura • Equipo Editorial
-              </Text>
             </View>
-          </TouchableOpacity>
-
-          {/* ARTÍCULO 2 */}
-          <TouchableOpacity className="flex-row items-center bg-[#8F9E70] rounded-2xl p-3 mb-4">
-            <Image
-              source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/ubxg3tb8_expires_30_days.png" }}
-              className="w-20 h-20 rounded-xl bg-[#E5E5E5]"
-            />
-            <View className="flex-1 ml-4">
-              <Text className="text-black text-base font-bold mb-1" numberOfLines={2}>
-                Cómo Lograr el Corte Juliana Perfecto
-              </Text>
-              <Text className="text-[#F7F4D5] text-xs font-medium mt-1">
-                4 min lectura • Tips de Chef
-              </Text>
-            </View>
-          </TouchableOpacity>
-
+          )}
         </View>
 
       </ScrollView>

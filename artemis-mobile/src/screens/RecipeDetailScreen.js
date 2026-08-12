@@ -1,147 +1,186 @@
-import React, { useState } from "react";
-import { View, ScrollView, Text, Image, TouchableOpacity, StatusBar } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, ScrollView, Text, Image, TouchableOpacity, StatusBar, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function RecipeDetailScreen({ navigation }) {
-  // Estado para controlar qué pestaña interna está activa
-  const [activeTab, setActiveTab] = useState('Ingredientes');
+export default function RecipeDetailScreen({ route, navigation }) {
+  // Recibimos el ID de la receta que el usuario tocó en la pantalla de inicio
+  const { recipeId } = route.params;
+
+  // Estados
+  const [recipe, setRecipe] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('Ingredientes'); // Controla la pestaña inferior
+
+  // Función para pedirle el detalle al servidor
+  useEffect(() => {
+    const fetchRecipeDetail = async () => {
+      try {
+        // Usamos tu IPv4 directamente
+        const response = await fetch(`http://10.40.92.65:3000/api/recetas/${recipeId}`);
+        const data = await response.json();
+        setRecipe(data);
+      } catch (error) {
+        console.error("Error al cargar el detalle:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRecipeDetail();
+  }, [recipeId]);
+
+  // Si está cargando, mostramos un spinner centrado
+  if (isLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#839958] justify-center items-center">
+        <ActivityIndicator size="large" color="#0A3323" />
+        <Text className="text-[#0A3323] font-bold mt-4">Preparando cocina...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  // Si no se encontró la receta (o hubo error)
+  if (!recipe) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#839958] justify-center items-center">
+        <Text className="text-[#F7F4D5] text-lg font-bold">No se encontró la receta.</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} className="mt-4 bg-[#0A3323] px-6 py-3 rounded-xl">
+          <Text className="text-[#F7F4D5] font-bold">Volver</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#839958]" edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#839958" />
-
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+    <View className="flex-1 bg-[#839958]">
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
+      
+      <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
         
-        {/* SECCIÓN SUPERIOR: IMAGEN Y BOTONES DE REGRESO/GUARDAR */}
-        <View className="relative w-full h-72 bg-gray-300">
+        {/* IMAGEN DE PORTADA Y BOTONES SUPERIORES */}
+        <View className="relative w-full h-72">
           <Image
-            source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/jetwaqsi_expires_30_days.png" }}
-            className="absolute w-full h-full"
+            source={{ uri: recipe.image_url || "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/jetwaqsi_expires_30_days.png" }}
+            className="w-full h-full"
             resizeMode="cover"
           />
-          
-          <View className="absolute top-6 left-0 right-0 flex-row justify-between px-6">
+          {/* Capa oscura para que resalten los botones */}
+          <View className="absolute top-0 w-full h-24 bg-black/30 pt-10 px-6 flex-row justify-between items-center">
+            {/* Botón de regreso */}
             <TouchableOpacity 
-              onPress={() => navigation.goBack()} 
-              className="w-11 h-11 bg-[#FBFBFB]/90 rounded-full items-center justify-center shadow-sm"
+              onPress={() => navigation.goBack()}
+              className="w-10 h-10 bg-[#F7F4D5]/90 rounded-full items-center justify-center"
             >
-              <Image source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/a1fu9rji_expires_30_days.png" }} className="w-5 h-5" resizeMode="contain" />
+              <Text className="text-black text-xl font-bold">←</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity className="w-11 h-11 bg-[#FBFBFB]/90 rounded-full items-center justify-center shadow-sm">
-              <Image source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/tpcehb1y_expires_30_days.png" }} className="w-5 h-5" resizeMode="contain" />
+            {/* Botón de guardar (Bookmark) */}
+            <TouchableOpacity className="w-10 h-10 bg-[#F7F4D5]/90 rounded-full items-center justify-center">
+              <Text className="text-black text-xl">🔖</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* SECCIÓN DE CONTENIDO */}
-        <View className="bg-[#839958] -mt-10 pt-8 px-6 rounded-t-[32px]">
+        {/* CONTENEDOR BLANCO/CREMA CON BORDES REDONDEADOS */}
+        <View className="flex-1 bg-[#F7F4D5] -mt-8 rounded-t-3xl px-6 pt-8 pb-10 shadow-lg">
           
-          <Text className="text-black text-3xl font-bold mb-4 leading-tight">
-            Fettuccine Cremoso con Vieiras a la Parrilla
+          {/* TÍTULO Y CHEF */}
+          <Text className="text-black text-3xl font-bold mb-2 leading-tight">
+            {recipe.title}
+          </Text>
+          <Text className="text-[#0A3323] text-base font-bold mb-6">
+            por {recipe.chef}
           </Text>
 
-          {/* PERFIL DEL CHEF */}
-          <View className="flex-row justify-between items-center mb-6">
-            <View className="flex-row items-center">
-              <Image 
-                source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/qfac8zo0_expires_30_days.png" }} 
-                className="w-12 h-12 rounded-full mr-3 bg-[#E5E5E5]" 
-              />
-              <View>
-                <Text className="text-black text-base font-bold">Chef Antonio</Text>
-                <Text className="text-[#F7F4D5] text-sm">Cocinero Premium</Text>
-              </View>
+          {/* ESTADÍSTICAS RÁPIDAS (Tiempo, Porciones, Categoría) */}
+          <View className="flex-row justify-between items-center mb-6 py-4 border-y border-[#839958]/30">
+            <View className="items-center">
+              <Text className="text-[#839958] text-sm font-bold mb-1">⏱ Tiempo</Text>
+              <Text className="text-black text-base font-bold">{recipe.total_time_minutes} min</Text>
             </View>
-            <TouchableOpacity className="border-2 border-[#0A3323] rounded-xl py-2 px-4">
-              <Text className="text-[#0A3323] text-sm font-bold">Seguir</Text>
+            <View className="items-center border-x border-[#839958]/30 px-6">
+              <Text className="text-[#839958] text-sm font-bold mb-1">🍽 Porciones</Text>
+              <Text className="text-black text-base font-bold">{recipe.servings} pers.</Text>
+            </View>
+            <View className="items-center">
+              <Text className="text-[#839958] text-sm font-bold mb-1">🏷 Categoría</Text>
+              <Text className="text-black text-base font-bold">{recipe.category}</Text>
+            </View>
+          </View>
+
+          {/* DESCRIPCIÓN */}
+          <Text className="text-[#444444] text-base leading-relaxed mb-8">
+            {recipe.description}
+          </Text>
+
+          {/* PESTAÑAS INTERNAS (Ingredientes / Instrucciones) */}
+          <View className="flex-row items-center bg-[#EEEEEE] rounded-xl p-1 mb-6">
+            <TouchableOpacity 
+              onPress={() => setActiveTab('Ingredientes')}
+              className={`flex-1 items-center py-3 rounded-lg ${activeTab === 'Ingredientes' ? 'bg-[#0A3323]' : 'bg-transparent'}`}
+            >
+              <Text className={`text-sm font-bold ${activeTab === 'Ingredientes' ? 'text-[#F7F4D5]' : 'text-black'}`}>
+                Ingredientes
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              onPress={() => setActiveTab('Instrucciones')}
+              className={`flex-1 items-center py-3 rounded-lg ${activeTab === 'Instrucciones' ? 'bg-[#0A3323]' : 'bg-transparent'}`}
+            >
+              <Text className={`text-sm font-bold ${activeTab === 'Instrucciones' ? 'text-[#F7F4D5]' : 'text-black'}`}>
+                Instrucciones
+              </Text>
             </TouchableOpacity>
           </View>
 
-          {/* BARRA DE ESTADÍSTICAS */}
-          <View className="flex-row items-center bg-[#0A3323] rounded-2xl py-4 px-2 mb-8 shadow-sm">
-            <View className="flex-1 items-center border-r border-[#F7F4D5]/20">
-              <Image source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/ji11uriw_expires_30_days.png" }} className="w-5 h-5 mb-2" style={{tintColor: '#F7F4D5'}}/>
-              <Text className="text-[#F7F4D5] text-base font-bold">2 pers</Text>
-              <Text className="text-[#F7F4D5] text-xs opacity-80">Porciones</Text>
-            </View>
-            <View className="flex-1 items-center border-r border-[#F7F4D5]/20">
-              <Image source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/yptjvysg_expires_30_days.png" }} className="w-5 h-5 mb-2" style={{tintColor: '#F7F4D5'}}/>
-              <Text className="text-[#F7F4D5] text-base font-bold">35 min</Text>
-              <Text className="text-[#F7F4D5] text-xs opacity-80">Prep.</Text>
-            </View>
-            <View className="flex-1 items-center">
-              <Image source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/gj6w6vap_expires_30_days.png" }} className="w-5 h-5 mb-2" style={{tintColor: '#F7F4D5'}}/>
-              <Text className="text-[#F7F4D5] text-base font-bold">Fácil</Text>
-              <Text className="text-[#F7F4D5] text-xs opacity-80">Dificultad</Text>
-            </View>
-          </View>
-
-          {/* MENÚ DE PESTAÑAS INTERNAS (AHORA ES FUNCIONAL) */}
-          <View className="flex-row items-center mb-6 border-b border-[#F7F4D5]/30">
-            {['Ingredientes', 'Instrucciones', 'Reseñas'].map((tab) => (
-              <TouchableOpacity 
-                key={tab} 
-                onPress={() => setActiveTab(tab)}
-                className={`mr-6 pb-2 ${activeTab === tab ? 'border-b-2 border-black' : ''}`}
-              >
-                <Text className={`text-base ${activeTab === tab ? 'text-black font-bold' : 'text-[#F7F4D5] font-medium'}`}>
-                  {tab}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* RENDERIZADO CONDICIONAL: Muestra contenido según la pestaña */}
-          <View>
-            
-            {/* VISTA 1: INGREDIENTES */}
-            {activeTab === 'Ingredientes' && (
-              <View>
-                <View className="flex-row justify-between items-center mb-4 bg-[#8F9E70] p-3 rounded-2xl">
-                  <View className="flex-row items-center">
-                    <View className="w-10 h-10 bg-[#FBFBFB] rounded-xl items-center justify-center mr-4">
-                      <Image source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/972z4wse_expires_30_days.png" }} className="w-5 h-5" resizeMode="contain" />
+          {/* CONTENIDO DINÁMICO DE LAS PESTAÑAS */}
+          
+          {/* VISTA 1: INGREDIENTES */}
+          {activeTab === 'Ingredientes' && (
+            <View>
+              {recipe.ingredientes && recipe.ingredientes.length > 0 ? (
+                recipe.ingredientes.map((ing, index) => (
+                  <View key={index} className="flex-row justify-between items-center py-3 border-b border-[#D9D9D9]">
+                    <View className="flex-row items-center flex-1 pr-4">
+                      <Text className="text-[#839958] mr-3">●</Text>
+                      <Text className="text-black text-base font-medium">{ing.name}</Text>
                     </View>
-                    <Text className="text-black text-base font-medium">Pasta fettuccine</Text>
+                    <Text className="text-[#444444] text-base font-bold">
+                      {ing.quantity} {ing.unit}
+                    </Text>
                   </View>
-                  <Text className="text-[#F7F4D5] text-base font-bold mr-2">250g</Text>
-                </View>
+                ))
+              ) : (
+                <Text className="text-black text-center mt-4">Aún no hay ingredientes registrados.</Text>
+              )}
+            </View>
+          )}
 
-                <View className="flex-row justify-between items-center mb-4 bg-[#8F9E70] p-3 rounded-2xl">
-                  <View className="flex-row items-center">
-                    <View className="w-10 h-10 bg-[#FBFBFB] rounded-xl items-center justify-center mr-4">
-                      <Image source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/whbomxs4_expires_30_days.png" }} className="w-5 h-5" resizeMode="contain" />
+          {/* VISTA 2: INSTRUCCIONES */}
+          {activeTab === 'Instrucciones' && (
+            <View>
+              {recipe.pasos && recipe.pasos.length > 0 ? (
+                recipe.pasos.map((paso) => (
+                  <View key={paso.step_number} className="flex-row mb-6">
+                    <View className="w-8 h-8 bg-[#839958] rounded-full items-center justify-center mr-4">
+                      <Text className="text-[#F7F4D5] font-bold">{paso.step_number}</Text>
                     </View>
-                    <Text className="text-black text-base font-medium">Vieiras frescas</Text>
+                    <View className="flex-1">
+                      <Text className="text-black text-base leading-relaxed">
+                        {paso.instruction_text}
+                      </Text>
+                    </View>
                   </View>
-                  <Text className="text-[#F7F4D5] text-base font-bold mr-2">8 pzas</Text>
-                </View>
-              </View>
-            )}
+                ))
+              ) : (
+                <Text className="text-black text-center mt-4">Aún no hay instrucciones registradas.</Text>
+              )}
+            </View>
+          )}
 
-            {/* VISTA 2: INSTRUCCIONES */}
-            {activeTab === 'Instrucciones' && (
-              <View className="bg-[#8F9E70] p-5 rounded-2xl">
-                <Text className="text-black font-bold mb-1 text-base">Paso 1:</Text>
-                <Text className="text-[#F7F4D5] mb-4 text-base leading-relaxed">Hierve abundante agua con sal en una olla grande. Agrega el fettuccine y cocina de 8 a 10 minutos hasta que esté al dente.</Text>
-                
-                <Text className="text-black font-bold mb-1 text-base">Paso 2:</Text>
-                <Text className="text-[#F7F4D5] text-base leading-relaxed">Mientras tanto, seca las vieiras con toallas de papel. Sazónalas con sal y pimienta. En un sartén caliente, séllalas por 2 minutos de cada lado hasta que doren.</Text>
-              </View>
-            )}
-
-            {/* VISTA 3: RESEÑAS */}
-            {activeTab === 'Reseñas' && (
-              <View className="bg-[#8F9E70] p-6 rounded-2xl items-center justify-center">
-                <Text className="text-black text-lg font-bold mb-2">Aún no hay reseñas</Text>
-                <Text className="text-[#F7F4D5] text-base text-center">¡Prepara este platillo y sé el primero en compartir tu experiencia!</Text>
-              </View>
-            )}
-
-          </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
