@@ -1,35 +1,62 @@
 import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
+  const { register } = useAuth();
+
   //Estados para capturar los datos del formulario
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Si el modal no está abierto, no renderizamos nada en pantalla
   if (!isOpen) return null;
 
-  //Manejador del envío (Listo para conectar a Node.js/PostgreSQL en la Fase 3)
-  const handleSubmit = (e) => {
+  //Manejador del envío: valida en cliente y luego llama al backend real vía AuthContext
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg('');
 
     if (!acceptPrivacy) {
-      alert('Por favor, acepta el Aviso de Privacidad para poder continuar.');
-      console.log('[LOG]: Intento fallido de registro - LFPDPPP no aceptada');
+      setErrorMsg('Por favor, acepta el Aviso de Privacidad para poder continuar.');
       return;
     }
 
-    console.log('[LOG]: Registro enviado exitosamente ->', {
-      fullName,
-      email,
-      privacyAccepted: acceptPrivacy,
-      timestamp: new Date().toISOString(),
-    });
+    if (password !== confirmPassword) {
+      setErrorMsg('Las contraseñas no coinciden. Verifica ambos campos.');
+      return;
+    }
 
-    alert('¡Cuenta creada con éxito! (En la Fase 3 esto enviará los datos a tu servidor)');
-    onClose();
+    // El formulario pide "Nombre Completo" en un solo campo; el backend espera
+    // first_name/last_name por separado, así que lo separamos por el primer espacio.
+    const trimmedName = fullName.trim();
+    const spaceIdx = trimmedName.indexOf(' ');
+    const first_name = spaceIdx === -1 ? trimmedName : trimmedName.slice(0, spaceIdx);
+    const last_name = spaceIdx === -1 ? '' : trimmedName.slice(spaceIdx + 1).trim();
+
+    if (!first_name || !last_name) {
+      setErrorMsg('Escribe tu nombre y apellido separados por un espacio (ej. "Alina Cruz").');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await register(first_name, last_name, email, password);
+      setFullName('');
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
+      onClose();
+    } catch (err) {
+      setErrorMsg(err.message || 'No se pudo crear la cuenta. Intenta de nuevo.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -76,6 +103,12 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
               Crear una Cuenta
             </h1>
           </div>
+
+          {errorMsg && (
+            <div className="bg-red-50 text-red-700 p-4 rounded-2xl mb-6 font-semibold text-center">
+              ⚠️ {errorMsg}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             {/* Campo: Nombre Completo */}
@@ -145,6 +178,22 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
               </div>
             </div>
 
+            {/* Campo: Confirmar Contraseña */}
+            <div className="flex flex-col gap-2">
+              <label htmlFor="confirmPassword" className="text-[#444444] text-lg font-medium">
+                Confirmar Contraseña
+              </label>
+              <input
+                id="confirmPassword"
+                type={showPassword ? 'text' : 'password'}
+                required
+                placeholder="Escribe de nuevo tu contraseña"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full text-[#1D1D1D] placeholder-[#ACACAC] bg-white text-lg py-3.5 px-5 rounded-xl border border-gray-300 focus:border-[#2E5834] focus:ring-2 focus:ring-[#2E5834]/20 outline-none transition-all"
+              />
+            </div>
+
             {/* CASILLA DE PRIVACIDAD LFPDPPP (WCAG 2.1 - Fácil lectura y área de clic amplia) */}
             <div className="flex items-start gap-3.5 pt-1">
               <input
@@ -173,9 +222,10 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
             {/* Botón Principal de Envío */}
             <button
               type="submit"
-              className="w-full bg-[#839958] hover:bg-[#72874b] text-white font-bold text-xl py-4 rounded-xl shadow-md transition-all transform active:scale-98 mt-2"
+              disabled={loading}
+              className="w-full bg-[#839958] hover:bg-[#72874b] text-white font-bold text-xl py-4 rounded-xl shadow-md transition-all transform active:scale-98 mt-2 disabled:opacity-60"
             >
-              Crear Cuenta
+              {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
             </button>
           </form>
 

@@ -1,20 +1,25 @@
 import React, { useState } from "react";
-import { View, ScrollView, Text, Image, TouchableOpacity, TextInput, StatusBar } from "react-native";
+import { View, ScrollView, Text, Image, TouchableOpacity, TextInput, StatusBar, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
+import { useAuth } from "../context/AuthContext";
 
 export default function AddRecipeScreen({ navigation }) {
+  const { authFetch } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [servings, setServings] = useState('');
   const [prepTime, setPrepTime] = useState('');
-  
+  const [coverImage, setCoverImage] = useState(null);
+
   // NUEVO: Lista de categorías oficiales como en la Web
   const [category, setCategory] = useState('Comidas y Platillos');
   const categoriesList = ['Comidas y Platillos', 'Dietas', 'Populares', 'Desayuno', 'Comida', 'Cena'];
-  
+
   const [chefTips, setChefTips] = useState('');
   const [ingredients, setIngredients] = useState([{ name: '', quantity: '' }]);
   const [steps, setSteps] = useState(['']);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const addIngredient = () => setIngredients([...ingredients, { name: '', quantity: '' }]);
   const removeIngredient = (index) => setIngredients(ingredients.filter((_, i) => i !== index));
@@ -32,10 +37,79 @@ export default function AddRecipeScreen({ navigation }) {
     setSteps(newSteps);
   };
 
+  const pickCoverImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso necesario', 'Necesitamos acceso a tus fotos para elegir la portada de la receta.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.7,
+    });
+
+    if (!result.canceled && result.assets?.length > 0) {
+      setCoverImage(result.assets[0]);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!title.trim()) {
+      Alert.alert('Falta el título', 'Ponle un nombre a tu receta antes de publicarla.');
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      const formData = new FormData();
+      formData.append('titulo', title);
+      formData.append('descripcion', description);
+      formData.append('porciones', servings);
+      formData.append('tiempo', prepTime);
+      formData.append('categoria', category || 'Comidas y Platillos');
+      formData.append('chef_tips', chefTips);
+      formData.append('ingredientes', JSON.stringify(ingredients.filter(i => i.name.trim() !== '')));
+      formData.append('pasos', JSON.stringify(steps.filter(s => s.trim() !== '')));
+
+      if (coverImage) {
+        const uriParts = coverImage.uri.split('.');
+        const fileExtension = uriParts[uriParts.length - 1];
+        formData.append('imagen', {
+          uri: coverImage.uri,
+          name: `portada.${fileExtension}`,
+          type: coverImage.mimeType || `image/${fileExtension}`,
+        });
+      }
+
+      // No fijamos Content-Type a mano: fetch en RN necesita generar el
+      // boundary del multipart automáticamente a partir del FormData.
+      const response = await authFetch('/api/recetas', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        Alert.alert('¡Listo!', '¡Receta publicada con éxito!');
+        navigation.navigate('Main');
+      } else {
+        const data = await response.json().catch(() => ({}));
+        Alert.alert('Error al publicar', data.error || 'No se pudo publicar la receta.');
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error de conexión', 'No se pudo conectar con el servidor.');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-[#839958]">
       <StatusBar barStyle="light-content" backgroundColor="#839958" />
-      
+
       <View className="flex-row items-center px-6 py-4 border-b border-[#F7F4D5]/20">
         <TouchableOpacity onPress={() => navigation.goBack()} className="w-10 h-10 justify-center">
           <Text className="text-black text-2xl font-bold">←</Text>
@@ -44,10 +118,19 @@ export default function AddRecipeScreen({ navigation }) {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 24 }} showsVerticalScrollIndicator={false}>
-        
-        <TouchableOpacity className="bg-[#F7F4D5]/80 border-2 border-dashed border-[#0A3323]/30 rounded-2xl py-12 items-center mb-8">
-          <Text className="text-[#0A3323] text-4xl mb-2">📷</Text>
-          <Text className="text-[#0A3323] text-base font-bold">Agregar Foto de Portada</Text>
+
+        <TouchableOpacity
+          onPress={pickCoverImage}
+          className="bg-[#F7F4D5]/80 border-2 border-dashed border-[#0A3323]/30 rounded-2xl py-12 items-center mb-8 overflow-hidden"
+        >
+          {coverImage ? (
+            <Image source={{ uri: coverImage.uri }} className="w-full h-40 rounded-xl" resizeMode="cover" />
+          ) : (
+            <>
+              <Text className="text-[#0A3323] text-4xl mb-2">📷</Text>
+              <Text className="text-[#0A3323] text-base font-bold">Agregar Foto de Portada</Text>
+            </>
+          )}
         </TouchableOpacity>
 
         <View className="mb-6">
@@ -130,7 +213,7 @@ export default function AddRecipeScreen({ navigation }) {
               <Text className="text-[#F7F4D5] text-sm font-bold">+ Añadir Ingrediente</Text>
             </TouchableOpacity>
           </View>
-          
+
           {ingredients.map((ing, index) => (
             <View key={index} className="flex-row items-center mb-3">
               <TextInput
@@ -147,7 +230,7 @@ export default function AddRecipeScreen({ navigation }) {
                 onChangeText={(text) => updateIngredient(text, index, 'quantity')}
                 className="w-28 bg-[#F7F4D5] text-black text-base rounded-xl px-4 py-3 text-center mr-2"
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => removeIngredient(index)}
                 className="w-12 h-12 bg-[#FEE2E2] rounded-xl items-center justify-center border border-[#CC3333]/20"
               >
@@ -164,7 +247,7 @@ export default function AddRecipeScreen({ navigation }) {
               <Text className="text-[#F7F4D5] text-sm font-bold">+ Añadir Paso</Text>
             </TouchableOpacity>
           </View>
-          
+
           {steps.map((step, index) => (
             <View key={index} className="flex-row mb-4">
               <View className="w-8 h-8 bg-[#0A3323] rounded-full items-center justify-center mr-3 mt-1">
@@ -179,7 +262,7 @@ export default function AddRecipeScreen({ navigation }) {
                   multiline
                   className="flex-1 bg-[#F7F4D5] text-black text-base rounded-xl px-4 py-3 min-h-[60px]"
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => removeStep(index)}
                   className="w-12 h-12 bg-[#FEE2E2] rounded-xl items-center justify-center ml-2 mt-1 border border-[#CC3333]/20"
                 >
@@ -205,41 +288,17 @@ export default function AddRecipeScreen({ navigation }) {
           />
         </View>
 
-        <TouchableOpacity 
-          className="bg-[#0A3323] rounded-xl py-4 items-center mb-8"
-          onPress={async () => {
-            try {
-              const nuevaReceta = {
-                titulo: title,
-                descripcion: description,
-                porciones: servings,
-                tiempo: prepTime,
-                categoria: category || 'Comidas y Platillos',
-                chef_tips: chefTips,
-                ingredientes: ingredients.filter(i => i.name.trim() !== ''),
-                pasos: steps.filter(s => s.trim() !== '')
-              };
-
-              const response = await fetch('http://10.40.92.65:3000/api/recetas', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(nuevaReceta)
-              });
-
-              if (response.ok) {
-                alert('¡Receta publicada con éxito!');
-                // ¡CORRECCIÓN AQUÍ! Cambiamos 'Inicio' por 'Main'
-                navigation.navigate('Main'); 
-              } else {
-                alert('Error al publicar la receta.');
-              }
-            } catch (error) {
-              console.error(error);
-              alert('Error de conexión con el servidor.');
-            }
-          }}
+        <TouchableOpacity
+          className="bg-[#0A3323] rounded-xl py-4 items-center mb-8 flex-row justify-center"
+          style={{ opacity: isPublishing ? 0.7 : 1 }}
+          disabled={isPublishing}
+          onPress={handlePublish}
         >
-          <Text className="text-[#F7F4D5] text-lg font-bold">Publicar Receta</Text>
+          {isPublishing ? (
+            <ActivityIndicator color="#F7F4D5" />
+          ) : (
+            <Text className="text-[#F7F4D5] text-lg font-bold">Publicar Receta</Text>
+          )}
         </TouchableOpacity>
 
       </ScrollView>

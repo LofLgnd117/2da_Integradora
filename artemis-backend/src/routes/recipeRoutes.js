@@ -4,6 +4,7 @@ const db = require('../config/db');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { requireAuth } = require('../middleware/auth');
 
 // =====================================================================
 // GET /api/recipes - Obtener recetas con filtro dinámico por categoría o búsqueda
@@ -107,7 +108,7 @@ const upload = multer({ storage: storage });
 // =====================================================================
 // POST /api/recipes - Crear una nueva receta con sus ingredientes
 // =====================================================================
-router.post('/', upload.single('image'), async (req, res) => {
+router.post('/', requireAuth, upload.single('image'), async (req, res) => {
   const client = await db.connect();
   try {
     const {
@@ -142,7 +143,7 @@ router.post('/', upload.single('image'), async (req, res) => {
       RETURNING id;
     `;
     const recipeValues = [
-      1,
+      req.userId,
       title.trim(),
       description ? description.trim() : '',
       parseInt(total_time_minutes) || 30,
@@ -187,9 +188,10 @@ router.post('/', upload.single('image'), async (req, res) => {
 // =====================================================================
 // POST /api/recipes/save - Guardar una receta en el tablero del usuario
 // =====================================================================
-router.post('/save', async (req, res) => {
+router.post('/save', requireAuth, async (req, res) => {
   try {
-    const { userId = 1, recipeId } = req.body;
+    const userId = req.userId;
+    const { recipeId } = req.body;
 
     if (!recipeId) {
       return res.status(400).json({ success: false, message: 'Se requiere el ID de la receta' });
@@ -262,12 +264,59 @@ router.get('/saved/:userId', async (req, res) => {
 });
 
 // =====================================================================
-// DELETE /api/recipes/:id - Eliminar receta y limpiar sus relaciones reales
+// DELETE /api/recipes/save/:recipeId - Quitar una receta de "Mis Favoritas"
 // =====================================================================
-router.delete('/:id', async (req, res) => {
+router.delete('/save/:recipeId', requireAuth, async (req, res) => {
+  try {
+    const { recipeId } = req.params;
+    const userId = req.userId;
+
+    const boardRes = await db.query(
+      `SELECT id FROM saved_boards WHERE user_id = $1 AND title = 'Mis Favoritas' LIMIT 1`,
+      [userId]
+    );
+
+    if (boardRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'No tienes recetas guardadas.' });
+    }
+
+    const boardId = boardRes.rows[0].id;
+
+    const deleteRes = await db.query(
+      `DELETE FROM board_recipes WHERE board_id = $1 AND recipe_id = $2 RETURNING recipe_id`,
+      [boardId, recipeId]
+    );
+
+    if (deleteRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Esa receta no estaba en tus favoritas.' });
+    }
+
+    res.json({ success: true, message: 'Receta quitada de tus favoritas.' });
+  } catch (error) {
+    console.error('[ERROR - DELETE /api/recipes/save/:recipeId]:', error.message);
+    res.status(500).json({ success: false, message: 'Error al quitar la receta de favoritas' });
+  }
+});
+
+// =====================================================================
+// DELETE /api/recipes/:id - Eliminar receta y limpiar sus relaciones reales
+// Solo el dueño de la receta puede eliminarla.
+// =====================================================================
+router.delete('/:id', requireAuth, async (req, res) => {
   const client = await db.connect();
   try {
     const { id } = req.params;
+
+    // 0. Verificamos que la receta exista y que quien la borra sea el dueño.
+    const ownerRes = await client.query('SELECT user_id FROM recipes WHERE id = $1', [id]);
+
+    if (ownerRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'La receta no existe o ya fue borrada.' });
+    }
+
+    if (ownerRes.rows[0].user_id !== req.userId) {
+      return res.status(403).json({ success: false, message: 'No puedes eliminar una receta que no te pertenece.' });
+    }
 
     await client.query('BEGIN');
 
@@ -285,10 +334,10 @@ router.delete('/:id', async (req, res) => {
 
     await client.query('COMMIT');
     console.log(`[LOG - DELETE]: Receta ID ${id} eliminada correctamente de PostgreSQL.`);
-    
+
     res.json({ success: true, message: '¡Receta eliminada con éxito!' });
   } catch (error) {
-    await client.query('ROLLBACK');
+    await client.query('ROLLBACK').catch(() => {});
     console.error('[ERROR - DELETE /api/recipes/:id]:', error.message);
     res.status(500).json({ success: false, message: 'Error al eliminar de PostgreSQL' });
   } finally {

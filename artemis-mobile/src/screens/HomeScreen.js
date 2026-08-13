@@ -1,41 +1,75 @@
-import React, { useState, useEffect } from "react";
-import { View, ScrollView, Text, Image, TextInput, TouchableOpacity, StatusBar, ActivityIndicator } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { View, ScrollView, Text, Image, TextInput, TouchableOpacity, StatusBar, ActivityIndicator, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
+import { API_BASE_URL } from "../config/api";
 
 export default function HomeScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('Todo');
-  const categories = ['Todo', 'Desayuno', 'Comida', 'Cena'];
+  
+  // Categorías sincronizadas con tu Base de Datos
+  const categories = ['Todo', 'Comidas y Platillos', 'Dietas', 'Populares', 'Desayuno', 'Cena'];
 
-  // Nuevos estados para manejar los datos del backend
   const [recipes, setRecipes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
-  // Función para obtener las recetas desde tu servidor Node.js
-  useEffect(() => {
-    const fetchRecipes = async () => {
-      try {
-        // 🚨 CAMBIA ESTA IP POR TU DIRECCIÓN IPv4 REAL 🚨
-        const backendURL = 'http://10.40.92.65:3000/api/recetas'; 
-        
-        const response = await fetch(backendURL);
-        const data = await response.json();
-        setRecipes(data);
-      } catch (error) {
-        console.error("Error conectando al backend:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchRecipes();
+  const fetchRecipes = useCallback(async () => {
+    try {
+      setHasError(false);
+      const response = await fetch(`${API_BASE_URL}/api/recetas`);
+      if (!response.ok) throw new Error('Respuesta no válida del servidor');
+      const data = await response.json();
+      setRecipes(data);
+    } catch (error) {
+      console.error("Error conectando al backend:", error);
+      setHasError(true);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchRecipes();
+    }, [fetchRecipes])
+  );
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchRecipes();
+  };
+
+  // ==========================================
+  // LÓGICA DE FILTRADO LOCAL 
+  // ==========================================
+  const recetasFiltradas = recipes.filter(receta => {
+    // 1. Validar la pestaña seleccionada
+    const coincideCategoria = activeTab === 'Todo' || receta.categoria === activeTab;
+    
+    // 2. Validar lo que se escribe en la barra
+    const textoBusqueda = searchQuery.toLowerCase().trim();
+    const coincideBusqueda = 
+      receta.titulo?.toLowerCase().includes(textoBusqueda) || 
+      receta.chef?.toLowerCase().includes(textoBusqueda);
+    
+    return coincideCategoria && coincideBusqueda;
+  });
 
   return (
     <SafeAreaView className="flex-1 bg-[#839958]">
       <StatusBar barStyle="light-content" backgroundColor="#839958" />
       
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor="#0A3323" />
+        }
+      >
         
         {/* ENCABEZADO */}
         <View className="flex-row justify-between items-center px-6 py-4">
@@ -44,9 +78,9 @@ export default function HomeScreen({ navigation }) {
             resizeMode="contain"
             className="w-40 h-14"
           />
-          <TouchableOpacity 
+          <TouchableOpacity
             className="min-h-[48px] min-w-[48px] items-center justify-center"
-            onPress={() => navigation.navigate('Profile')} 
+            onPress={() => navigation.navigate('Perfil')}
           >
             <Image
               source={{ uri: "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/p0afafy0_expires_30_days.png" }}
@@ -67,6 +101,12 @@ export default function HomeScreen({ navigation }) {
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
+            {/* Botón X para limpiar barra */}
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} className="p-2">
+                <Text className="text-[#F7F4D5] text-lg font-bold">✕</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -91,25 +131,26 @@ export default function HomeScreen({ navigation }) {
           </ScrollView>
         </View>
 
-        {/* SECCIÓN: RECETAS DESTACADAS (CONECTADA A POSTGRESQL) */}
+        {/* SECCIÓN: RECETAS */}
         <View className="px-6 mb-8">
           <View className="flex-row justify-between items-center mb-5">
             <Text className="text-black text-2xl font-bold">
-              Recetas Destacadas
+              {searchQuery !== '' ? 'Resultados' : 'Recetas Destacadas'}
             </Text>
-            <TouchableOpacity className="min-h-[48px] justify-center">
-              <Text className="text-[#F7F4D5] text-sm font-bold">Ver todo</Text>
-            </TouchableOpacity>
+            {searchQuery === '' && (
+              <TouchableOpacity className="min-h-[48px] justify-center">
+                <Text className="text-[#F7F4D5] text-sm font-bold">Ver todo</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
-          {/* Renderizado Condicional: Muestra el spinner mientras carga, y luego las recetas */}
           {isLoading ? (
             <ActivityIndicator size="large" color="#0A3323" className="mt-10" />
-          ) : (
+          ) : recetasFiltradas.length > 0 ? (
             <View className="flex-row flex-wrap justify-between">
               
-              {/* MAPEAMOS LOS DATOS DEL SERVIDOR */}
-              {recipes.map((receta) => (
+              {/* MAPEAMOS LAS RECETAS FILTRADAS */}
+              {recetasFiltradas.map((receta) => (
                 <TouchableOpacity 
                   key={receta.id}
                   className="w-[48%] mb-6"
@@ -127,16 +168,27 @@ export default function HomeScreen({ navigation }) {
                     por {receta.chef}
                   </Text>
                   <View className="flex-row items-center">
-                    <View className="flex-row items-center mr-3">
-                      <Text className="text-black text-xs font-bold mr-1">⭐ 4.8</Text>
-                    </View>
-                    <View className="flex-row items-center">
-                      <Text className="text-[#F7F4D5] text-xs font-medium">⏱ {receta.tiempo} min</Text>
-                    </View>
+                    <Text className="text-[#F7F4D5] text-xs font-medium">⏱ {receta.tiempo} min</Text>
                   </View>
                 </TouchableOpacity>
               ))}
 
+            </View>
+          ) : hasError ? (
+            <View className="items-center mt-10">
+              <Text className="text-4xl mb-4">📡</Text>
+              <Text className="text-black text-base font-bold text-center mb-2">Sin conexión con el servidor</Text>
+              <Text className="text-[#444444] text-center px-4 mb-4">
+                Verifica que el backend esté encendido y que tu celular esté en la misma red Wi-Fi.
+              </Text>
+              <TouchableOpacity onPress={fetchRecipes} className="bg-[#0A3323] px-6 py-3 rounded-xl">
+                <Text className="text-[#F7F4D5] font-bold">Reintentar</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View className="items-center mt-10">
+              <Text className="text-4xl mb-4">🍽️</Text>
+              <Text className="text-black text-base font-bold text-center">No encontramos recetas</Text>
             </View>
           )}
         </View>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function RecipeCard({
   id,
@@ -10,6 +11,7 @@ export default function RecipeCard({
   imageSrc
 }) {
   const navigate = useNavigate();
+  const { token, isAuthenticated } = useAuth();
   // Estado para cambiar visualmente el icono cuando el usuario lo guarda
   const [isSaved, setIsSaved] = useState(false);
 
@@ -19,17 +21,27 @@ export default function RecipeCard({
     e.stopPropagation();
     e.preventDefault();
 
+    if (!isAuthenticated) {
+      alert('Inicia sesión para guardar recetas en tu colección.');
+      return;
+    }
+
     try {
       const res = await fetch('http://localhost:5000/api/recipes/save', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: 1, recipeId: id })
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ recipeId: id })
       });
       const data = await res.json();
 
       if (data.success) {
         setIsSaved(true);
         alert(`🌟 ¡"${title}" se guardó en tus favoritas!`);
+      } else {
+        alert(data.message || 'No se pudo guardar la receta.');
       }
     } catch (err) {
       console.error('Error al guardar desde la tarjeta:', err);

@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import RecipeCard from '../components/RecipeCard';
 import CustomModal from '../components/CustomModal';
+import { useAuth } from '../context/AuthContext';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
+  const { user: authUser, isAuthenticated, initialized } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -16,7 +18,16 @@ export default function ProfilePage() {
   const [modalInfo, setModalInfo] = useState({ isOpen: false, title: '', message: '' });
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/users/1')
+    // Esperamos a que AuthContext termine de leer localStorage antes de decidir
+    if (!initialized) return;
+
+    if (!isAuthenticated || !authUser) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    fetch(`http://localhost:5000/api/users/${authUser.id}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
@@ -28,12 +39,32 @@ export default function ProfilePage() {
         console.error('[ERROR - PERFIL]:', err);
         setLoading(false);
       });
-  }, []);
+  }, [initialized, isAuthenticated, authUser]);
 
-  if (loading) {
+  if (!initialized || loading) {
     return (
       <div className="min-h-screen bg-[#FBFBFB] flex items-center justify-center font-sans">
         <p className="text-xl font-bold text-[#2E5834]">Cargando tu perfil...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#FBFBFB] flex flex-col font-sans">
+        <Navbar />
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 text-center py-24">
+          <div className="w-20 h-20 bg-[#839958]/20 text-[#2E5834] rounded-full flex items-center justify-center text-3xl mb-2 font-bold">
+            🔒
+          </div>
+          <p className="text-2xl font-bold text-gray-700">Inicia sesión para ver tu perfil</p>
+          <p className="text-gray-500 max-w-md">
+            Usa el botón "Iniciar Sesión" en la barra superior para acceder a tus recetas, tus ajustes y tu racha de cocina.
+          </p>
+          <button onClick={() => navigate('/')} className="bg-[#2E5834] text-white px-8 py-3 rounded-full font-bold mt-2">
+            Volver a Inicio
+          </button>
+        </div>
       </div>
     );
   }

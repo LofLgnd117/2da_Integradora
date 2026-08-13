@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import CustomModal from '../components/CustomModal';
+import { useAuth } from '../context/AuthContext';
 
 export default function RecipeDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, token, isAuthenticated } = useAuth();
 
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -29,11 +31,23 @@ export default function RecipeDetailsPage() {
 
   // FUNCIÓN PARA GUARDAR EN FAVORITOS NO MOVER
  const handleSaveRecipe = async () => {
+  if (!isAuthenticated) {
+    setModalNotice({
+      isOpen: true,
+      title: 'Inicia sesión primero',
+      message: 'Necesitas iniciar sesión para guardar recetas en tu colección de favoritas.'
+    });
+    return;
+  }
+
   try {
     const res = await fetch('http://localhost:5000/api/recipes/save', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: 1, recipeId: recipe.id })
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ recipeId: recipe.id })
     });
     const data = await res.json();
     if (data.success) {
@@ -41,6 +55,12 @@ export default function RecipeDetailsPage() {
         isOpen: true,
         title: '¡Receta Guardada!',
         message: `"${recipe.title}" ha sido agregada a tu colección en Recetas Guardadas.`
+      });
+    } else {
+      setModalNotice({
+        isOpen: true,
+        title: 'No se pudo guardar',
+        message: data.message || 'Ocurrió un error al guardar la receta.'
       });
     }
   } catch (err) {
@@ -52,16 +72,27 @@ export default function RecipeDetailsPage() {
 const executeDelete = async () => {
   try {
     const res = await fetch(`http://localhost:5000/api/recipes/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
     });
     const data = await res.json();
     if (data.success) {
       navigate('/perfil');
+    } else {
+      setShowDeleteModal(false);
+      setModalNotice({
+        isOpen: true,
+        title: 'No se pudo eliminar',
+        message: data.message || 'Ocurrió un error al eliminar la receta.'
+      });
     }
   } catch (err) {
     console.error('Error al eliminar:', err);
   }
 };
+
+  // El botón de eliminar solo tiene sentido si el usuario logueado es el dueño de la receta
+  const isOwner = isAuthenticated && recipe && user && recipe.user_id === user.id;
 
   if (loading) {
     return (
@@ -115,13 +146,15 @@ const executeDelete = async () => {
                 <span>🔖</span> Guardar en mi colección
               </button>
 
-            {/* BOTÓN ELIMINAR */}
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold px-6 py-3 rounded-full text-base flex items-center gap-2 transition-colors shadow-sm cursor-pointer ml-auto"
-              >
-                <span>🗑️</span> Eliminar receta
-              </button>
+            {/* BOTÓN ELIMINAR: solo visible si el usuario logueado es el dueño de la receta */}
+              {isOwner && (
+                <button
+                  onClick={() => setShowDeleteModal(true)}
+                  className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold px-6 py-3 rounded-full text-base flex items-center gap-2 transition-colors shadow-sm cursor-pointer ml-auto"
+                >
+                  <span>🗑️</span> Eliminar receta
+                </button>
+              )}
             </div>
         </div>
 

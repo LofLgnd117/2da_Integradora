@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { useAuth } from '../context/AuthContext';
 
 export default function AddRecipePage() {
   const navigate = useNavigate();
+  const { token, isAuthenticated } = useAuth();
 
   // 1. Datos generales de la receta
   const [formData, setFormData] = useState({
@@ -86,6 +88,11 @@ export default function AddRecipePage() {
       return;
     }
 
+    if (!isAuthenticated) {
+      setErrorMsg('Debes iniciar sesión para publicar una receta.');
+      return;
+    }
+
     setLoading(true);
 
     const dataToSend = new FormData();
@@ -105,6 +112,7 @@ export default function AddRecipePage() {
     try {
       const response = await fetch('http://localhost:5000/api/recipes', {
         method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
         body: dataToSend
       });
 

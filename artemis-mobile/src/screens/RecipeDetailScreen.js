@@ -1,48 +1,76 @@
-import React, { useState, useEffect } from "react";
-import { View, ScrollView, Text, Image, TouchableOpacity, StatusBar, ActivityIndicator, Modal } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { View, ScrollView, Text, Image, TouchableOpacity, StatusBar, ActivityIndicator, Modal, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
+import { API_BASE_URL } from "../config/api";
+import { useAuth } from "../context/AuthContext";
 
 export default function RecipeDetailScreen({ route, navigation }) {
   const { recipeId } = route.params;
+  const { authFetch } = useAuth();
   const [recipe, setRecipe] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('Ingredientes'); 
-  
+  const [activeTab, setActiveTab] = useState('Ingredientes');
+  const [isSaving, setIsSaving] = useState(false);
+
   // NUEVO ESTADO: Controla si el modal personalizado se ve o no
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
 
-  useEffect(() => {
-    const fetchRecipeDetail = async () => {
-      try {
-        const response = await fetch(`http://10.40.92.65:3000/api/recetas/${recipeId}`);
-        const data = await response.json();
-        setRecipe(data);
-      } catch (error) {
-        console.error("Error al cargar el detalle:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchRecipeDetail = useCallback(async () => {
+    try {
+      const response = await authFetch(`/api/recetas/${recipeId}`);
+      const data = await response.json();
+      setRecipe(data);
+    } catch (error) {
+      console.error("Error al cargar el detalle:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [recipeId, authFetch]);
 
-    fetchRecipeDetail();
-  }, [recipeId]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchRecipeDetail();
+    }, [fetchRecipeDetail])
+  );
 
   // NUEVA FUNCIÓN: Ejecuta el borrado cuando el usuario confirma en el modal
   const confirmDelete = async () => {
     setDeleteModalVisible(false); // Cerramos el modal primero
     try {
-      const response = await fetch(`http://10.40.92.65:3000/api/recetas/${recipeId}`, {
-        method: 'DELETE',
-      });
+      const response = await authFetch(`/api/recetas/${recipeId}`, { method: 'DELETE' });
 
       if (response.ok) {
-        navigation.navigate('Main'); 
+        navigation.navigate('Main');
       } else {
-        alert("Error al intentar eliminar la receta.");
+        const data = await response.json().catch(() => ({}));
+        Alert.alert("No se pudo eliminar", data.error || "Ocurrió un error al eliminar la receta.");
       }
     } catch (error) {
       console.error("Error de conexión al eliminar:", error);
-      alert("Hubo un error de conexión.");
+      Alert.alert("Sin conexión", "Hubo un error de conexión al intentar eliminar la receta.");
+    }
+  };
+
+  const toggleSaved = async () => {
+    if (!recipe || isSaving) return;
+    setIsSaving(true);
+    const wasSaved = recipe.esta_guardada;
+    // Actualización optimista para que se sienta instantáneo
+    setRecipe((prev) => ({ ...prev, esta_guardada: !wasSaved }));
+    try {
+      const response = await authFetch(`/api/recetas/${recipeId}/guardar`, {
+        method: wasSaved ? 'DELETE' : 'POST',
+      });
+      if (!response.ok) {
+        throw new Error('No se pudo actualizar');
+      }
+    } catch (error) {
+      console.error("Error al guardar/quitar receta:", error);
+      setRecipe((prev) => ({ ...prev, esta_guardada: wasSaved }));
+      Alert.alert("Sin conexión", "No se pudo actualizar tus guardados. Intenta de nuevo.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -55,7 +83,7 @@ export default function RecipeDetailScreen({ route, navigation }) {
     );
   }
 
-  if (!recipe) {
+  if (!recipe || recipe.error) {
     return (
       <SafeAreaView className="flex-1 bg-[#839958] justify-center items-center">
         <Text className="text-[#F7F4D5] text-lg font-bold">No se encontró la receta.</Text>
@@ -69,9 +97,9 @@ export default function RecipeDetailScreen({ route, navigation }) {
   return (
     <View className="flex-1 bg-[#839958]">
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
-      
+
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-        
+
         {/* IMAGEN DE PORTADA Y BOTONES */}
         <View className="relative w-full h-72">
           <Image
@@ -83,27 +111,33 @@ export default function RecipeDetailScreen({ route, navigation }) {
             <TouchableOpacity onPress={() => navigation.goBack()} className="w-10 h-10 bg-[#F7F4D5]/90 rounded-full items-center justify-center">
               <Text className="text-black text-xl font-bold">←</Text>
             </TouchableOpacity>
-            
+
             {/* BOTONES DERECHOS */}
             <View className="flex-row items-center">
-              <TouchableOpacity 
-                onPress={() => setDeleteModalVisible(true)} // Abre el modal visual
-                className="w-10 h-10 bg-[#FEE2E2]/90 rounded-full items-center justify-center mr-3 border border-[#CC3333]/20"
-              >
-                <Text className="text-[#CC3333] text-lg">🗑️</Text>
-              </TouchableOpacity>
+              {recipe.es_dueno && (
+                <TouchableOpacity
+                  onPress={() => setDeleteModalVisible(true)} // Abre el modal visual
+                  className="w-10 h-10 bg-[#FEE2E2]/90 rounded-full items-center justify-center mr-3 border border-[#CC3333]/20"
+                >
+                  <Text className="text-[#CC3333] text-lg">🗑️</Text>
+                </TouchableOpacity>
+              )}
 
-              <TouchableOpacity className="w-10 h-10 bg-[#F7F4D5]/90 rounded-full items-center justify-center">
-                <Text className="text-black text-xl">🔖</Text>
+              <TouchableOpacity
+                onPress={toggleSaved}
+                disabled={isSaving}
+                className="w-10 h-10 bg-[#F7F4D5]/90 rounded-full items-center justify-center"
+              >
+                <Text className="text-black text-xl">{recipe.esta_guardada ? '🔖' : '📑'}</Text>
               </TouchableOpacity>
             </View>
-            
+
           </View>
         </View>
 
         {/* CONTENEDOR PRINCIPAL */}
         <View className="flex-1 bg-[#F7F4D5] -mt-8 rounded-t-3xl px-6 pt-8 pb-10 shadow-lg">
-          
+
           <Text className="text-black text-3xl font-bold mb-2 leading-tight">{recipe.title}</Text>
           <Text className="text-[#0A3323] text-base font-bold mb-6">por {recipe.chef}</Text>
 
@@ -127,14 +161,14 @@ export default function RecipeDetailScreen({ route, navigation }) {
 
           {/* PESTAÑAS INTERNAS */}
           <View className="flex-row items-center bg-[#EEEEEE] rounded-xl p-1 mb-6">
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setActiveTab('Ingredientes')}
               className={`flex-1 items-center py-3 rounded-lg ${activeTab === 'Ingredientes' ? 'bg-[#0A3323]' : 'bg-transparent'}`}
             >
               <Text className={`text-sm font-bold ${activeTab === 'Ingredientes' ? 'text-[#F7F4D5]' : 'text-black'}`}>Ingredientes</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               onPress={() => setActiveTab('Instrucciones')}
               className={`flex-1 items-center py-3 rounded-lg ${activeTab === 'Instrucciones' ? 'bg-[#0A3323]' : 'bg-transparent'}`}
             >
@@ -209,9 +243,9 @@ export default function RecipeDetailScreen({ route, navigation }) {
       >
         <View className="flex-1 justify-center items-center bg-black/60 px-6">
           <View className="w-full bg-[#2E5834] rounded-[24px] p-8 items-center shadow-2xl">
-            
+
             <Text className="text-[#0A3323] text-xl font-bold mb-4">Ártemis</Text>
-            
+
             <View className="w-20 h-20 bg-[#FFAEAE] rounded-full items-center justify-center mb-6">
               <Text className="text-[#CC3333] text-4xl font-bold">!</Text>
             </View>
@@ -223,14 +257,14 @@ export default function RecipeDetailScreen({ route, navigation }) {
               ¿Estás seguro de que deseas eliminar esta receta? Esta acción es permanente y se borrará de toda la plataforma.
             </Text>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={confirmDelete}
               className="w-full min-h-[56px] bg-[#CC3333] rounded-xl items-center justify-center mb-4"
             >
               <Text className="text-white text-base font-bold">Sí, eliminar receta</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setDeleteModalVisible(false)}
               className="w-full min-h-[56px] bg-[#839958] border border-[#F7F4D5]/30 rounded-xl items-center justify-center"
             >

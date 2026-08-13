@@ -1,15 +1,42 @@
 import React, { useState } from "react";
-import { View, ScrollView, Text, TextInput, TouchableOpacity, Modal, StatusBar } from "react-native";
+import { View, ScrollView, Text, TouchableOpacity, Modal, StatusBar, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../context/AuthContext";
 
 export default function AccountSettingsScreen({ navigation }) {
-  const [email, setEmail] = useState('leonardo.flores@utd.edu.mx');
+  const { user, authFetch, logout } = useAuth();
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleLogout = () => {
+    Alert.alert('Cerrar sesión', '¿Seguro que quieres cerrar tu sesión?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Cerrar sesión', style: 'destructive', onPress: logout },
+    ]);
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await authFetch(`/api/usuarios/${user.id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'No se pudo eliminar la cuenta.');
+      }
+      setDeleteModalVisible(false);
+      await logout();
+      // App.js redirige automáticamente a la pantalla de bienvenida al perder la sesión.
+    } catch (error) {
+      setIsDeleting(false);
+      setDeleteModalVisible(false);
+      Alert.alert('Error', error.message || 'No se pudo eliminar la cuenta.');
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-[#839958]">
       <StatusBar barStyle="light-content" backgroundColor="#839958" />
-      
+
       {/* ENCABEZADO DE NAVEGACIÓN */}
       <View className="flex-row items-center px-6 py-4 border-b border-[#F7F4D5]/20">
         <TouchableOpacity onPress={() => navigation.goBack()} className="w-10 h-10 justify-center">
@@ -21,27 +48,43 @@ export default function AccountSettingsScreen({ navigation }) {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 24 }} showsVerticalScrollIndicator={false}>
-        
+
         {/* SECCIÓN: CORREO ELECTRÓNICO */}
         <View className="mb-8">
           <Text className="text-black text-base font-bold mb-4">Correo Electrónico</Text>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            className="bg-[#F7F4D5] text-black text-base rounded-xl px-4 py-3"
-          />
+          <View className="bg-[#F7F4D5] rounded-xl px-4 py-3">
+            <Text className="text-black text-base">{user?.email}</Text>
+          </View>
         </View>
 
         {/* SECCIÓN: CONTRASEÑA */}
         <View className="mb-8">
           <Text className="text-black text-base font-bold mb-2">Contraseña</Text>
           <Text className="text-[#F7F4D5] text-sm mb-4 leading-5">
-            Tu seguridad es nuestra prioridad. Si deseas cambiar tu contraseña, haz clic en el botón de abajo y te enviaremos un enlace seguro de restablecimiento a tu correo.
+            Por ahora el restablecimiento de contraseña por correo aún no está disponible. Si la olvidaste, contacta al equipo de soporte.
           </Text>
-          <TouchableOpacity className="bg-[#0A3323] rounded-xl py-4 items-center">
+          <TouchableOpacity
+            className="bg-[#0A3323]/50 rounded-xl py-4 items-center"
+            onPress={() => Alert.alert('Próximamente', 'El restablecimiento de contraseña por correo estará disponible pronto.')}
+          >
             <Text className="text-[#F7F4D5] text-base font-bold">Restablecer Contraseña</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* SEPARADOR */}
+        <View className="h-[1px] bg-[#F7F4D5]/30 mb-8" />
+
+        {/* SECCIÓN: SESIÓN */}
+        <View className="mb-8">
+          <TouchableOpacity
+            onPress={handleLogout}
+            className="flex-row justify-between items-center bg-[#F7F4D5] rounded-xl p-4"
+          >
+            <View className="flex-row items-center">
+              <Text className="text-[#0A3323] text-lg mr-3">🚪</Text>
+              <Text className="text-[#0A3323] text-base font-bold">Cerrar Sesión</Text>
+            </View>
+            <Text className="text-[#0A3323] text-lg font-bold">›</Text>
           </TouchableOpacity>
         </View>
 
@@ -51,7 +94,7 @@ export default function AccountSettingsScreen({ navigation }) {
         {/* SECCIÓN: ZONA DE PELIGRO */}
         <View className="mb-8">
           <Text className="text-black text-base font-bold mb-4">Zona de Peligro</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => setDeleteModalVisible(true)}
             className="flex-row justify-between items-center bg-[#FEE2E2] rounded-xl p-4 border border-[#CC3333]/30"
           >
@@ -76,9 +119,9 @@ export default function AccountSettingsScreen({ navigation }) {
       >
         <View className="flex-1 justify-center items-center bg-black/60 px-6">
           <View className="w-full bg-[#2E5834] rounded-[24px] p-8 items-center shadow-2xl">
-            
+
             <Text className="text-[#0A3323] text-xl font-bold mb-4">Ártemis</Text>
-            
+
             {/* Círculo de Alerta */}
             <View className="w-20 h-20 bg-[#FFAEAE] rounded-full items-center justify-center mb-6">
               <Text className="text-[#CC3333] text-4xl font-bold">!</Text>
@@ -108,18 +151,22 @@ export default function AccountSettingsScreen({ navigation }) {
             </View>
 
             {/* Botones */}
-            <TouchableOpacity 
-              onPress={() => {
-                setDeleteModalVisible(false);
-                // Aquí iría la lógica para cerrar sesión y mandar al inicio
-              }}
-              className="w-full min-h-[56px] bg-[#CC3333] rounded-xl items-center justify-center mb-4"
+            <TouchableOpacity
+              onPress={handleDeleteAccount}
+              disabled={isDeleting}
+              style={{ opacity: isDeleting ? 0.7 : 1 }}
+              className="w-full min-h-[56px] bg-[#CC3333] rounded-xl items-center justify-center mb-4 flex-row"
             >
-              <Text className="text-white text-base font-bold">Sí, eliminar mi cuenta</Text>
+              {isDeleting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text className="text-white text-base font-bold">Sí, eliminar mi cuenta</Text>
+              )}
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setDeleteModalVisible(false)}
+              disabled={isDeleting}
               className="w-full min-h-[56px] bg-[#839958] border border-[#F7F4D5]/30 rounded-xl items-center justify-center"
             >
               <Text className="text-[#F7F4D5] text-base font-bold">Cancelar</Text>

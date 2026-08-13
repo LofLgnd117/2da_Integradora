@@ -1,10 +1,31 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logoArtemis from '../assets/logo-artemis.png';
+import { useAuth } from '../context/AuthContext';
+import LoginModal from './LoginModal';
+import SignupModal from './SignupModal';
 
 export default function Navbar({ onLoginClick }) {
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  // Navbar controla sus propios modales de sesión: hoy ninguna página los
+  // renderizaba (LoginModal/SignupModal existían pero no estaban conectados
+  // a nada), así que como Navbar aparece en todas las páginas, es el lugar
+  // más simple para que "Iniciar Sesión" abra el modal desde cualquier vista.
+  const [authModal, setAuthModal] = useState(null); // 'login' | 'signup' | null
+
+  const openLoginModal = () => {
+    if (onLoginClick) onLoginClick();
+    setAuthModal('login');
+  };
+
+  const handleLogout = () => {
+    logout();
+    setShowUserMenu(false);
+    navigate('/');
+  };
 
   const notifications = [
     {
@@ -119,15 +140,62 @@ export default function Navbar({ onLoginClick }) {
             )}
           </div>
 
-          {/* BOTÓN DE PERFIL EN VERDE OSCURO PARA HACER CONTRASTE */}
-          <button
-            onClick={() => navigate('/perfil')}
-            className="bg-[#2E5834] hover:bg-[#1f3d23] text-white font-bold px-5 py-2 rounded-full text-sm transition-colors cursor-pointer shadow-sm"
-          >
-            Alina Cruz
-          </button>
+          {/* SESIÓN: si hay usuario logueado, mostramos su nombre + menú con "Cerrar sesión";
+              si no, mostramos el botón para abrir el modal de Iniciar Sesión */}
+          {isAuthenticated ? (
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="bg-[#2E5834] hover:bg-[#1f3d23] text-white font-bold px-5 py-2 rounded-full text-sm transition-colors cursor-pointer shadow-sm flex items-center gap-2"
+              >
+                {user?.first_name || 'Mi cuenta'}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {showUserMenu && (
+                <div className="absolute right-0 mt-3 w-56 bg-white text-[#1D1D1D] rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50">
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      navigate('/perfil');
+                    }}
+                    className="w-full text-left px-5 py-3 hover:bg-gray-50 font-semibold cursor-pointer"
+                  >
+                    Mi Perfil
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-5 py-3 hover:bg-red-50 font-semibold text-red-600 cursor-pointer border-t border-gray-100"
+                  >
+                    Cerrar sesión
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={openLoginModal}
+              className="bg-[#2E5834] hover:bg-[#1f3d23] text-white font-bold px-5 py-2 rounded-full text-sm transition-colors cursor-pointer shadow-sm"
+            >
+              Iniciar Sesión
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Modales de sesión, accesibles desde cualquier página */}
+      <LoginModal
+        isOpen={authModal === 'login'}
+        onClose={() => setAuthModal(null)}
+        onSwitchToSignup={() => setAuthModal('signup')}
+      />
+      <SignupModal
+        isOpen={authModal === 'signup'}
+        onClose={() => setAuthModal(null)}
+        onSwitchToLogin={() => setAuthModal('login')}
+      />
     </nav>
   );
 }

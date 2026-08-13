@@ -2,15 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import RecipeCard from '../components/RecipeCard';
+import { useAuth } from '../context/AuthContext';
 
 export default function SavedRecipesPage() {
   const navigate = useNavigate();
+  const { user, isAuthenticated, initialized } = useAuth();
   const [savedRecipes, setSavedRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Consultamos al backend las recetas guardadas del usuario 1 (Alina Cruz)
+  // Consultamos al backend las recetas guardadas del usuario con sesión activa
   useEffect(() => {
-    fetch('http://localhost:5000/api/recipes/saved/1')
+    if (!initialized) return;
+
+    if (!isAuthenticated || !user) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    fetch(`http://localhost:5000/api/recipes/saved/${user.id}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
@@ -22,7 +32,27 @@ export default function SavedRecipesPage() {
         console.error('[ERROR - RECETAS GUARDADAS]:', err);
         setLoading(false);
       });
-  }, []);
+  }, [initialized, isAuthenticated, user]);
+
+  if (initialized && !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#FBFBFB] flex flex-col font-sans">
+        <Navbar />
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 text-center py-24">
+          <div className="w-20 h-20 bg-[#839958]/20 text-[#2E5834] rounded-full flex items-center justify-center text-3xl mb-2 font-bold">
+            🔒
+          </div>
+          <p className="text-2xl font-bold text-gray-700">Inicia sesión para ver tus recetas guardadas</p>
+          <p className="text-gray-500 max-w-md">
+            Usa el botón "Iniciar Sesión" en la barra superior para acceder a tu recetario personal.
+          </p>
+          <button onClick={() => navigate('/')} className="bg-[#2E5834] text-white px-8 py-3 rounded-full font-bold mt-2">
+            Volver a Inicio
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FBFBFB] flex flex-col font-sans">

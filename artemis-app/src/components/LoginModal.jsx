@@ -1,25 +1,35 @@
 import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
+  const { login } = useAuth();
+
   //Estados limpios del formulario de Inicio de Sesión
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Si el modal no está activo, no renderiza nada
   if (!isOpen) return null;
 
-  //Manejador de envío
-  const handleSubmit = (e) => {
+  //Manejador de envío: llama al backend real vía AuthContext
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg('');
+    setLoading(true);
 
-    console.log('[LOG]: Intento de Inicio de Sesión ->', {
-      email,
-      timestamp: new Date().toISOString(),
-    });
-
-    alert('¡Sesión iniciada correctamente! (En la Fase 3 esto enviará los datos a Node.js)');
-    onClose();
+    try {
+      await login(email, password);
+      setEmail('');
+      setPassword('');
+      onClose();
+    } catch (err) {
+      setErrorMsg(err.message || 'Correo o contraseña incorrectos.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -66,6 +76,12 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
               Iniciar Sesión
             </h1>
           </div>
+
+          {errorMsg && (
+            <div className="bg-red-50 text-red-700 p-4 rounded-2xl mb-6 font-semibold text-center">
+              ⚠️ {errorMsg}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             {/* Campo: Correo Electrónico */}
@@ -122,9 +138,10 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
             {/* Botón Principal de Inicio de Sesión */}
             <button
               type="submit"
-              className="w-full bg-[#839958] hover:bg-[#72874b] text-white font-bold text-xl py-4 rounded-xl shadow-md transition-all transform active:scale-98 mt-2"
+              disabled={loading}
+              className="w-full bg-[#839958] hover:bg-[#72874b] text-white font-bold text-xl py-4 rounded-xl shadow-md transition-all transform active:scale-98 mt-2 disabled:opacity-60"
             >
-              Iniciar Sesión
+              {loading ? 'Ingresando...' : 'Iniciar Sesión'}
             </button>
           </form>
 

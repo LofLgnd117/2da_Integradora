@@ -1,18 +1,41 @@
 import React, { useState } from "react";
-import { View, ScrollView, Text, Image, TextInput, TouchableOpacity, StatusBar } from "react-native";
+import { View, ScrollView, Text, Image, TextInput, TouchableOpacity, StatusBar, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../context/AuthContext";
 
 export default function LoginScreen({ navigation }) {
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleLogin = async () => {
+    setErrorMessage("");
+
+    if (!email.trim() || !password) {
+      setErrorMessage("Ingresa tu correo y contraseña.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await login(email.trim(), password);
+      // Al iniciar sesión con éxito, App.js cambia automáticamente a la app principal.
+    } catch (error) {
+      setErrorMessage(error.message || "No se pudo iniciar sesión. Intenta de nuevo.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-[#839958]">
       <StatusBar barStyle="light-content" backgroundColor="#839958" />
-      
+
       <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-        
+
         {/* LOGO */}
         <View className="items-center pt-10 pb-8">
           <Image
@@ -34,7 +57,7 @@ export default function LoginScreen({ navigation }) {
 
         {/* FORMULARIO */}
         <View className="px-8 w-full">
-          
+
           {/* INPUT CORREO */}
           <View className="mb-6">
             <Text className="text-[#F7F4D5] text-base font-medium mb-2 ml-1">
@@ -48,6 +71,7 @@ export default function LoginScreen({ navigation }) {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              editable={!isSubmitting}
             />
           </View>
 
@@ -64,8 +88,9 @@ export default function LoginScreen({ navigation }) {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
+                editable={!isSubmitting}
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
                 className="min-h-[48px] min-w-[48px] items-center justify-center -mr-2"
               >
@@ -78,6 +103,12 @@ export default function LoginScreen({ navigation }) {
             </View>
           </View>
 
+          {errorMessage !== "" && (
+            <Text className="text-[#FFB4B4] text-sm font-bold mb-4 ml-1">
+              {errorMessage}
+            </Text>
+          )}
+
           {/* OLVIDÉ MI CONTRASEÑA */}
           <TouchableOpacity className="self-end py-2 min-h-[48px] justify-center mb-8">
             <Text className="text-[#0A3323] text-base font-bold">
@@ -86,14 +117,20 @@ export default function LoginScreen({ navigation }) {
           </TouchableOpacity>
 
           {/* BOTÓN INICIAR SESIÓN */}
-          <TouchableOpacity 
-            onPress={() => navigation.navigate('Main')}
-            className="bg-[#0A3323] rounded-2xl items-center justify-center min-h-[56px] mb-6 shadow-sm"
+          <TouchableOpacity
+            onPress={handleLogin}
+            disabled={isSubmitting}
+            className="bg-[#0A3323] rounded-2xl items-center justify-center min-h-[56px] mb-6 shadow-sm flex-row"
+            style={{ opacity: isSubmitting ? 0.7 : 1 }}
             activeOpacity={0.8}
           >
-            <Text className="text-[#F7F4D5] text-lg font-bold tracking-wide">
-              Iniciar Sesión
-            </Text>
+            {isSubmitting ? (
+              <ActivityIndicator color="#F7F4D5" />
+            ) : (
+              <Text className="text-[#F7F4D5] text-lg font-bold tracking-wide">
+                Iniciar Sesión
+              </Text>
+            )}
           </TouchableOpacity>
 
           {/* ENLACE DE REGISTRO */}
@@ -101,8 +138,8 @@ export default function LoginScreen({ navigation }) {
             <Text className="text-[#F7F4D5] text-base">
               ¿No tienes cuenta?
             </Text>
-            <TouchableOpacity 
-              className="min-h-[48px] justify-center px-2" 
+            <TouchableOpacity
+              className="min-h-[48px] justify-center px-2"
               // Te lleva a la pantalla de registro
               onPress={() => navigation.navigate('Signup')}
             >
