@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar';
 import RecipeCard from '../components/RecipeCard';
 import CustomModal from '../components/CustomModal';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../config/api';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ export default function ProfilePage() {
     }
 
     setLoading(true);
-    fetch(`http://localhost:5000/api/users/${authUser.id}`)
+    fetch(`${API_URL}/api/users/${authUser.id}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {

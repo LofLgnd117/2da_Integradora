@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import CustomModal from '../components/CustomModal';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../config/api';
 
 export default function RecipeDetailsPage() {
   const { id } = useParams();
@@ -15,7 +16,7 @@ export default function RecipeDetailsPage() {
   const [modalNotice, setModalNotice] = useState({ isOpen: false, title: '', message: '' });
 
   useEffect(() => {
-    fetch(`http://localhost:5000/api/recipes/${id}`)
+    fetch(`${API_URL}/api/recipes/${id}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
@@ -41,7 +42,7 @@ export default function RecipeDetailsPage() {
   }
 
   try {
-    const res = await fetch('http://localhost:5000/api/recipes/save', {
+    const res = await fetch(`${API_URL}/api/recipes/save`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -71,7 +72,7 @@ export default function RecipeDetailsPage() {
 // Esta función ejecuta el borrado real al confirmar en el modal
 const executeDelete = async () => {
   try {
-    const res = await fetch(`http://localhost:5000/api/recipes/${id}`, {
+    const res = await fetch(`${API_URL}/api/recipes/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -119,6 +120,10 @@ const executeDelete = async () => {
     'Agrega los ingredientes principales y cocina mezclando constantemente para integrar todos los sabores del sazón.',
     'Sirve caliente de inmediato y decora con un toque final fresco para presentar en la mesa.'
   ];
+
+  const displaySteps = recipe.steps && recipe.steps.length > 0
+    ? recipe.steps.map((s) => s.instruction_text)
+    : defaultSteps;
 
   return (
     <div className="min-h-screen bg-[#FBFBFB] flex flex-col font-sans">
@@ -211,7 +216,7 @@ const executeDelete = async () => {
             <div className="bg-white p-8 md:p-10 rounded-[32px] shadow-sm border border-gray-100">
               <h2 className="text-2xl font-black text-[#1D1D1D] mb-8">Instrucciones de Preparación</h2>
               <div className="space-y-8">
-                {defaultSteps.map((step, idx) => (
+                {displaySteps.map((step, idx) => (
                   <div key={idx} className="flex gap-6 items-start">
                     <div className="w-10 h-10 rounded-full bg-[#2E5834] text-white font-bold text-lg flex items-center justify-center shrink-0 shadow-md">
                       {idx + 1}
@@ -231,7 +236,7 @@ const executeDelete = async () => {
                 <h3 className="text-xl font-bold text-[#2E5834]">Consejos del Chef</h3>
               </div>
               <p className="text-gray-700 text-lg leading-relaxed">
-                Para obtener un sabor aún más intenso, puedes marinar los ingredientes durante 15 minutos en el refrigerador antes de llevarlos al sartén caliente.
+                {recipe.chef_tips || 'Para obtener un sabor aún más intenso, puedes marinar los ingredientes durante 15 minutos en el refrigerador antes de llevarlos al sartén caliente.'}
               </p>
             </div>
           </div>

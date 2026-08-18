@@ -2,6 +2,10 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
+if (!process.env.JWT_SECRET) {
+  throw new Error('Falta JWT_SECRET en el archivo .env');
+}
+
 // Al importar db.js, se ejecutará la prueba de conexión a PostgreSQL
 const db = require('./config/db');
 
@@ -9,7 +13,13 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middlewares globales
-app.use(cors());
+// CORS_ORIGIN admite una lista separada por comas (p. ej. "http://localhost:5173,https://mi-dominio.com").
+// Si no se define, se usa el origen del dev server de Vite como valor por defecto seguro.
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json()); // Permite recibir datos JSON en las peticiones
 const path = require('path'); // Asegúrate de importar 'path' arriba del archivo
 

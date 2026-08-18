@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../config/api';
 
 export default function AddRecipePage() {
   const navigate = useNavigate();
@@ -109,8 +110,11 @@ export default function AddRecipePage() {
     const validIngredients = ingredients.filter((i) => i.name.trim() !== '');
     dataToSend.append('ingredients', JSON.stringify(validIngredients));
 
+    const validSteps = steps.filter((s) => s.trim() !== '');
+    dataToSend.append('steps', JSON.stringify(validSteps));
+
     try {
-      const response = await fetch('http://localhost:5000/api/recipes', {
+      const response = await fetch(`${API_URL}/api/recipes`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: dataToSend

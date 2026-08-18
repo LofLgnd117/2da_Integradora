@@ -71,13 +71,20 @@ router.get('/:id', async (req, res) => {
     }
 
     const ingredientsRes = await db.query(`
-      SELECT quantity, unit, name 
-      FROM recipe_ingredients 
-      WHERE recipe_id = $1 
+      SELECT quantity, unit, name
+      FROM recipe_ingredients
+      WHERE recipe_id = $1
       ORDER BY sort_order ASC`, [id]);
+
+    const stepsRes = await db.query(`
+      SELECT step_number, instruction_text
+      FROM recipe_steps
+      WHERE recipe_id = $1
+      ORDER BY step_number ASC`, [id]);
 
     const recipeData = recipeRes.rows[0];
     recipeData.ingredients = ingredientsRes.rows;
+    recipeData.steps = stepsRes.rows;
 
     res.json({ success: true, data: recipeData });
   } catch (error) {
@@ -103,7 +110,20 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Solo se permiten archivos de imagen'));
+    }
+    cb(null, true);
+  },
+});
+
+function buildFileUrl(req, filename) {
+  return `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+}
 
 // =====================================================================
 // POST /api/recipes - Crear una nueva receta con sus ingredientes
@@ -116,19 +136,27 @@ router.post('/', requireAuth, upload.single('image'), async (req, res) => {
       description,
       total_time_minutes,
       servings,
-      category
+      category,
+      chef_tips
     } = req.body;
 
     let finalImageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80';
     if (req.file) {
-      finalImageUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+      finalImageUrl = buildFileUrl(req, req.file.filename);
     }
 
     let ingredientsList = [];
     if (req.body.ingredients) {
-      ingredientsList = typeof req.body.ingredients === 'string' 
-        ? JSON.parse(req.body.ingredients) 
+      ingredientsList = typeof req.body.ingredients === 'string'
+        ? JSON.parse(req.body.ingredients)
         : req.body.ingredients;
+    }
+
+    let stepsList = [];
+    if (req.body.steps) {
+      stepsList = typeof req.body.steps === 'string'
+        ? JSON.parse(req.body.steps)
+        : req.body.steps;
     }
 
     if (!title || !category) {
@@ -138,8 +166,8 @@ router.post('/', requireAuth, upload.single('image'), async (req, res) => {
     await client.query('BEGIN');
 
     const recipeQuery = `
-      INSERT INTO recipes (user_id, title, description, total_time_minutes, servings, image_url, category)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO recipes (user_id, title, description, total_time_minutes, servings, image_url, category, chef_tips)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING id;
     `;
     const recipeValues = [
@@ -149,9 +177,10 @@ router.post('/', requireAuth, upload.single('image'), async (req, res) => {
       parseInt(total_time_minutes) || 30,
       parseInt(servings) || 4,
       finalImageUrl,
-      category
+      category,
+      chef_tips ? chef_tips.trim() : null
     ];
-    
+
     const recipeRes = await client.query(recipeQuery, recipeValues);
     const newRecipeId = recipeRes.rows[0].id;
 
@@ -170,6 +199,20 @@ router.post('/', requireAuth, upload.single('image'), async (req, res) => {
             ing.name.trim(),
             i + 1
           ]);
+        }
+      }
+    }
+
+    if (stepsList && Array.isArray(stepsList) && stepsList.length > 0) {
+      const stepQuery = `
+        INSERT INTO recipe_steps (recipe_id, step_number, instruction_text)
+        VALUES ($1, $2, $3);
+      `;
+      let stepNumber = 1;
+      for (const stepText of stepsList) {
+        if (stepText && stepText.trim() !== '') {
+          await client.query(stepQuery, [newRecipeId, stepNumber, stepText.trim()]);
+          stepNumber++;
         }
       }
     }
@@ -229,10 +272,15 @@ router.post('/save', requireAuth, async (req, res) => {
 
 // =====================================================================
 // GET /api/recipes/saved/:userId - Obtener todas las recetas guardadas del usuario
+// Solo el dueño de la cuenta puede consultar su propia lista de favoritas.
 // =====================================================================
-router.get('/saved/:userId', async (req, res) => {
+router.get('/saved/:userId', requireAuth, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (parseInt(userId, 10) !== req.userId) {
+      return res.status(403).json({ success: false, message: 'No puedes ver las recetas guardadas de otro usuario.' });
+    }
 
     const query = `
       SELECT r.id, r.title, r.description, r.total_time_minutes, 

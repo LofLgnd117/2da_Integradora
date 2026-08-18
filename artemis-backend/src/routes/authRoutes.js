@@ -4,6 +4,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
+const { authLimiter } = require('../middleware/rateLimiter');
 
 const SALT_ROUNDS = 10;
 const TOKEN_EXPIRES_IN = '30d';
@@ -15,7 +16,7 @@ function signToken(userId) {
 // =====================================================================
 // POST /api/auth/registro - Crea una cuenta nueva
 // =====================================================================
-router.post('/registro', async (req, res) => {
+router.post('/registro', authLimiter, async (req, res) => {
   try {
     const { first_name, last_name, email, password } = req.body || {};
 
@@ -57,7 +58,7 @@ router.post('/registro', async (req, res) => {
 // =====================================================================
 // POST /api/auth/login - Inicia sesión con correo y contraseña
 // =====================================================================
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body || {};
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import RecipeCard from '../components/RecipeCard';
+import { API_URL } from '../config/api';
 
 export default function SearchResultsPage() {
   const [searchParams] = useSearchParams();
@@ -17,7 +18,7 @@ export default function SearchResultsPage() {
   useEffect(() => {
     setLoading(true);
     // Construimos la URL con los filtros
-    let url = 'http://localhost:5000/api/recipes?';
+    let url = `${API_URL}/api/recipes?`;
     if (categoriaSeleccionada) url += `categoria=${encodeURIComponent(categoriaSeleccionada)}&`;
     if (textoBusqueda) url += `buscar=${encodeURIComponent(textoBusqueda)}`;
 

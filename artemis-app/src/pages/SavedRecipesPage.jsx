@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import RecipeCard from '../components/RecipeCard';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../config/api';
 
 export default function SavedRecipesPage() {
   const navigate = useNavigate();
-  const { user, isAuthenticated, initialized } = useAuth();
+  const { user, token, isAuthenticated, initialized } = useAuth();
   const [savedRecipes, setSavedRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,7 +21,9 @@ export default function SavedRecipesPage() {
     }
 
     setLoading(true);
-    fetch(`http://localhost:5000/api/recipes/saved/${user.id}`)
+    fetch(`${API_URL}/api/recipes/saved/${user.id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {

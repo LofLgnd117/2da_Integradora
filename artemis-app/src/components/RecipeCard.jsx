@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../config/api';
 
 export default function RecipeCard({
   id,
@@ -27,7 +28,7 @@ export default function RecipeCard({
     }
 
     try {
-      const res = await fetch('http://localhost:5000/api/recipes/save', {
+      const res = await fetch(`${API_URL}/api/recipes/save`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
