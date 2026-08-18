@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
 import RecipeCard from '../components/RecipeCard';
+import { API_URL } from '../config/api';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -10,7 +11,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/recipes')
+    fetch(`${API_URL}/api/recipes`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {

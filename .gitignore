@@ -15,6 +15,12 @@ jspm_packages/
 *.env
 
 # ==========================================
+# CONTENIDO SUBIDO POR USUARIOS (NO VERSIONAR)
+# ==========================================
+**/public/uploads/*
+!**/public/uploads/.gitkeep
+
+# ==========================================
 # ARCHIVOS DE LOGS Y DEPURACIÓN
 # ==========================================
 logs
