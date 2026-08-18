@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import CustomModal from '../components/CustomModal';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config/api';
 
 export default function AddRecipePage() {
   const navigate = useNavigate();
   const { token, isAuthenticated } = useAuth();
+  const [successModal, setSuccessModal] = useState({ isOpen: false, recipeId: null });
 
   // 1. Datos generales de la receta
   const [formData, setFormData] = useState({
@@ -129,8 +131,7 @@ export default function AddRecipePage() {
       const data = await response.json();
 
       if (data.success) {
-        alert('🌟 ¡Tu receta se ha publicado con éxito!');
-        navigate(`/receta/${data.recipeId}`);
+        setSuccessModal({ isOpen: true, recipeId: data.recipeId });
       } else {
         setErrorMsg(data.message || 'Ocurrió un error al publicar.');
       }
@@ -414,6 +415,15 @@ export default function AddRecipePage() {
           </form>
         </div>
       </main>
+
+      <CustomModal
+        isOpen={successModal.isOpen}
+        onClose={() => navigate(`/receta/${successModal.recipeId}`)}
+        title="¡Receta Publicada!"
+        message="🌟 Tu receta se ha publicado con éxito y ya está disponible para toda la comunidad de Ártemis."
+        showCancel={false}
+        confirmText="Ver mi receta"
+      />
     </div>
   );
 }

@@ -14,53 +14,49 @@ export default function CustomModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeIn">
-      {/* Caja del Modal Estilo Figma */}
-      <div className="bg-white rounded-[32px] max-w-lg w-full p-8 md:p-10 shadow-2xl border border-gray-100 relative">
-        {/* Botón Cerrar (X) */}
-        <button
-          onClick={onClose}
-          className="absolute top-6 right-6 text-gray-400 hover:text-gray-700 font-bold text-2xl transition-colors"
-        >
-          ✕
-        </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6 animate-fadeIn">
+      {/* Caja del Modal — mismo lenguaje visual que los modales de la app móvil */}
+      <div className="w-full max-w-sm bg-[#2E5834] rounded-[24px] p-8 shadow-2xl flex flex-col items-center text-center">
+        <p className="text-[#0A3323] text-lg font-bold mb-4">Ártemis</p>
 
-        {/* Título */}
-        <h3 className="text-3xl font-black text-[#1D1D1D] mb-4 pr-6">
+        <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${
+          isDestructive ? 'bg-[#FFAEAE]' : 'bg-[#839958]/40'
+        }`}>
+          <span className={`text-4xl font-bold ${isDestructive ? 'text-[#CC3333]' : 'text-[#F7F4D5]'}`}>
+            {isDestructive ? '!' : '✓'}
+          </span>
+        </div>
+
+        <h3 className="text-[#0A3323] text-2xl font-black mb-2">
           {title}
         </h3>
-
-        {/* Mensaje */}
-        <p className="text-gray-600 text-lg leading-relaxed mb-8">
+        <p className="text-[#F7F4D5] text-sm leading-relaxed mb-8 px-2">
           {message}
         </p>
 
-        {/* Botones de Acción Estilo Figma */}
-        <div className="flex items-center justify-between gap-4">
-          {showCancel ? (
-            <button
-              onClick={onClose}
-              className="px-8 py-3.5 rounded-full border-2 border-[#2E5834] text-[#2E5834] font-bold text-lg hover:bg-[#839958]/10 transition-colors"
-            >
-              {cancelText}
-            </button>
-          ) : (
-            <div></div> // Espaciador si solo es modal de aviso
-          )}
-
+        <div className="w-full flex flex-col gap-4">
           <button
             onClick={() => {
               if (onConfirm) onConfirm();
               onClose();
             }}
-            className={`px-8 py-3.5 rounded-full font-bold text-lg text-white shadow-md transition-all ${
+            className={`w-full min-h-[56px] rounded-xl font-bold text-base transition-colors ${
               isDestructive
-                ? 'bg-[#2E5834] hover:bg-[#1f3d23]'
-                : 'bg-[#2E5834] hover:bg-[#1f3d23]'
+                ? 'bg-[#CC3333] hover:bg-[#b32c2c] text-white'
+                : 'bg-[#0A3323] hover:bg-[#092a1c] text-[#F7F4D5]'
             }`}
           >
             {confirmText}
           </button>
+
+          {showCancel && (
+            <button
+              onClick={onClose}
+              className="w-full min-h-[56px] rounded-xl border border-[#F7F4D5]/30 bg-[#839958] hover:bg-[#768c4e] text-[#F7F4D5] font-bold text-base transition-colors"
+            >
+              {cancelText}
+            </button>
+          )}
         </div>
       </div>
     </div>

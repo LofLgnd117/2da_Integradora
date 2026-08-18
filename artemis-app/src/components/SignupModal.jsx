@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import CustomModal from './CustomModal';
 
 export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
   const { register } = useAuth();
@@ -13,6 +14,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
 
   // Si el modal no está abierto, no renderizamos nada en pantalla
   if (!isOpen) return null;
@@ -209,7 +211,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
                   href="#privacidad"
                   onClick={(e) => {
                     e.preventDefault();
-                    alert('Aquí se mostrará el Aviso de Privacidad Integral conforme a la LFPDPPP para adultos mayores.');
+                    setShowPrivacyNotice(true);
                   }}
                   className="text-[#2E5834] font-semibold underline hover:text-[#1f3d23]"
                 >
@@ -247,6 +249,15 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }) {
           </div>
         </div>
       </div>
+
+      <CustomModal
+        isOpen={showPrivacyNotice}
+        onClose={() => setShowPrivacyNotice(false)}
+        title="Aviso de Privacidad"
+        message="Aquí se mostrará el Aviso de Privacidad Integral conforme a la LFPDPPP para adultos mayores."
+        showCancel={false}
+        confirmText="Entendido"
+      />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config/api';
+import CustomModal from './CustomModal';
 
 export default function RecipeCard({
   id,
@@ -15,6 +16,7 @@ export default function RecipeCard({
   const { token, isAuthenticated } = useAuth();
   // Estado para cambiar visualmente el icono cuando el usuario lo guarda
   const [isSaved, setIsSaved] = useState(false);
+  const [modal, setModal] = useState({ isOpen: false, title: '', message: '' });
 
   // Función para guardar directamente desde la tarjeta
   const handleBookmarkClick = async (e) => {
@@ -23,7 +25,11 @@ export default function RecipeCard({
     e.preventDefault();
 
     if (!isAuthenticated) {
-      alert('Inicia sesión para guardar recetas en tu colección.');
+      setModal({
+        isOpen: true,
+        title: 'Inicia sesión primero',
+        message: 'Necesitas iniciar sesión para guardar recetas en tu colección de favoritas.'
+      });
       return;
     }
 
@@ -40,16 +46,18 @@ export default function RecipeCard({
 
       if (data.success) {
         setIsSaved(true);
-        alert(`🌟 ¡"${title}" se guardó en tus favoritas!`);
+        setModal({ isOpen: true, title: '¡Receta Guardada!', message: `🌟 "${title}" se guardó en tus favoritas.` });
       } else {
-        alert(data.message || 'No se pudo guardar la receta.');
+        setModal({ isOpen: true, title: 'No se pudo guardar', message: data.message || 'Ocurrió un error al guardar la receta.' });
       }
     } catch (err) {
       console.error('Error al guardar desde la tarjeta:', err);
+      setModal({ isOpen: true, title: 'Sin conexión', message: 'No se pudo conectar con el servidor. Intenta de nuevo.' });
     }
   };
 
   return (
+    <>
     <div
       onClick={() => navigate(`/receta/${id}`)}
       className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col group"
@@ -115,5 +123,15 @@ export default function RecipeCard({
         </div>
       </div>
     </div>
+
+    <CustomModal
+      isOpen={modal.isOpen}
+      onClose={() => setModal({ isOpen: false, title: '', message: '' })}
+      title={modal.title}
+      message={modal.message}
+      showCancel={false}
+      confirmText="Entendido"
+    />
+    </>
   );
 }
