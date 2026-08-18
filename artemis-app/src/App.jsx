@@ -8,6 +8,7 @@ import RecipeDetailsPage from './pages/RecipeDetailsPage';
 import AddRecipePage from './pages/AddRecipePage';
 import ProfilePage from './pages/ProfilePage';
 import SavedRecipesPage from './pages/SavedRecipesPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 function AppRoutes() {
   return (
@@ -33,6 +34,9 @@ function AppRoutes() {
 
         {/* 6. Ruta de Recetarios Guardados */}
         <Route path="/guardadas" element={<SavedRecipesPage />} />
+
+        {/* Ruta para restablecer contraseña desde el enlace enviado por correo */}
+        <Route path="/restablecer-password/:token" element={<ResetPasswordPage />} />
 
         {/* 7. RUTA COMODÍN DE SEGURIDAD (*): Evita pantallas blancas si la URL no existe */}
         <Route path="*" element={<HomePage />} />

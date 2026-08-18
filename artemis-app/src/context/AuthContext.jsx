@@ -73,6 +73,22 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
+  // Fusiona cambios parciales del usuario (p. ej. tras editar el perfil) y
+  // los persiste, sin necesidad de volver a iniciar sesión.
+  const updateUser = useCallback((partialUser) => {
+    setUser((prev) => {
+      const merged = { ...prev, ...partialUser };
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, user: merged }));
+      } catch (err) {
+        console.error('[AuthContext]: No se pudo persistir el usuario actualizado ->', err);
+      }
+      return merged;
+    });
+  }, []);
+
   const value = {
     user,
     token,
@@ -81,6 +97,7 @@ export function AuthProvider({ children }) {
     login,
     register,
     logout,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

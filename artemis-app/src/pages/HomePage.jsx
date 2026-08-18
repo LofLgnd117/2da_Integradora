@@ -102,7 +102,7 @@ export default function HomePage() {
                 title={recipe.title}
                 author={recipe.author || 'Alina Cruz'}
                 totalTime={`${recipe.total_time_minutes} min`}
-                reviewsCount={12}
+                likesCount={recipe.likes_count}
                 imageSrc={recipe.image_url}
               />
             ))

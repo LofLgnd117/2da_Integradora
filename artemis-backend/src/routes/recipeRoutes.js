@@ -1,10 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const { requireAuth, optionalAuth } = require('../middleware/auth');
+const { upload, buildFileUrl } = require('../middleware/upload');
 const { notify, unlockBadge } = require('../services/gamification');
 
 const ALLOWED_DIFFICULTIES = ['Fácil', 'Media', 'Difícil'];
@@ -19,9 +17,10 @@ router.get('/', async (req, res) => {
     console.log('[LOG - FILTROS RECIBIDOS]:', { categoria, buscar });
 
     let query = `
-      SELECT r.id, r.title, r.description, r.total_time_minutes, 
+      SELECT r.id, r.title, r.description, r.total_time_minutes,
              r.servings, r.image_url, r.category,
-             u.first_name || ' ' || u.last_name AS author
+             u.first_name || ' ' || u.last_name AS author,
+             (SELECT COUNT(*) FROM recipe_likes rl WHERE rl.recipe_id = r.id) AS likes_count
       FROM recipes r
       JOIN users u ON r.user_id = u.id
       WHERE 1=1
@@ -117,38 +116,6 @@ router.get('/:id', optionalAuth, async (req, res) => {
     res.status(500).json({ success: false, message: 'Error del servidor' });
   }
 });
-
-// 1. Asegurar que exista la carpeta de guardado
-const uploadDir = path.join(__dirname, '../../public/uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// 2. Configurar dónde y con qué nombre se guardarán las fotos
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'receta-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith('image/')) {
-      return cb(new Error('Solo se permiten archivos de imagen'));
-    }
-    cb(null, true);
-  },
-});
-
-function buildFileUrl(req, filename) {
-  return `${req.protocol}://${req.get('host')}/uploads/${filename}`;
-}
 
 // =====================================================================
 // POST /api/recipes - Crear una nueva receta con sus ingredientes
@@ -317,10 +284,11 @@ router.get('/saved/:userId', requireAuth, async (req, res) => {
     }
 
     const query = `
-      SELECT r.id, r.title, r.description, r.total_time_minutes, 
+      SELECT r.id, r.title, r.description, r.total_time_minutes,
              r.servings, r.image_url, r.category,
              u.first_name || ' ' || u.last_name AS author,
-             br.saved_at
+             br.saved_at,
+             (SELECT COUNT(*) FROM recipe_likes rl WHERE rl.recipe_id = r.id) AS likes_count
       FROM board_recipes br
       JOIN saved_boards sb ON br.board_id = sb.id
       JOIN recipes r ON br.recipe_id = r.id

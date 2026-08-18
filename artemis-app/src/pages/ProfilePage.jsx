@@ -14,7 +14,7 @@ const BADGES_CATALOG = [
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { user: authUser, isAuthenticated, initialized } = useAuth();
+  const { user: authUser, token, isAuthenticated, initialized, logout, updateUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -23,6 +23,17 @@ export default function ProfilePage() {
 
   // Notificacion de guardado/éxito en perfil
   const [modalInfo, setModalInfo] = useState({ isOpen: false, title: '', message: '' });
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  // Formulario de "Editar Perfil"
+  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', website: '', about_me: '' });
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // Restablecer contraseña (desde la propia sesión)
+  const [isSendingReset, setIsSendingReset] = useState(false);
 
   useEffect(() => {
     // Esperamos a que AuthContext termine de leer localStorage antes de decidir
@@ -39,6 +50,12 @@ export default function ProfilePage() {
       .then((data) => {
         if (data.success) {
           setProfile(data);
+          setEditForm({
+            first_name: data.user.first_name || '',
+            last_name: data.user.last_name || '',
+            website: data.user.website || '',
+            about_me: data.user.about_me || ''
+          });
         }
         setLoading(false);
       })
@@ -47,6 +64,102 @@ export default function ProfilePage() {
         setLoading(false);
       });
   }, [initialized, isAuthenticated, authUser]);
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    if (!editForm.first_name.trim() || !editForm.last_name.trim()) {
+      setModalInfo({ isOpen: true, title: 'Faltan datos', message: 'Tu nombre y apellido no pueden estar vacíos.' });
+      return;
+    }
+
+    setIsSavingProfile(true);
+    try {
+      const formData = new FormData();
+      formData.append('first_name', editForm.first_name.trim());
+      formData.append('last_name', editForm.last_name.trim());
+      formData.append('website', editForm.website.trim());
+      formData.append('about_me', editForm.about_me.trim());
+      if (avatarFile) {
+        formData.append('avatar', avatarFile);
+      }
+
+      const res = await fetch(`${API_URL}/api/users/${authUser.id}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setProfile((prev) => ({ ...prev, user: { ...prev.user, ...data.user } }));
+        updateUser({ first_name: data.user.first_name, last_name: data.user.last_name });
+        setAvatarFile(null);
+        setModalInfo({
+          isOpen: true,
+          title: '¡Perfil Actualizado!',
+          message: 'Tus cambios se han guardado correctamente en tu cuenta de Ártemis.'
+        });
+      } else {
+        setModalInfo({ isOpen: true, title: 'No se pudo guardar', message: data.message || 'Ocurrió un error al actualizar tu perfil.' });
+      }
+    } catch (err) {
+      console.error('[ERROR - ACTUALIZAR PERFIL]:', err);
+      setModalInfo({ isOpen: true, title: 'Sin conexión', message: 'No se pudo conectar con el servidor. Intenta de nuevo.' });
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleSendPasswordReset = async () => {
+    setIsSendingReset(true);
+    try {
+      await fetch(`${API_URL}/api/auth/olvide-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: profile.user.email })
+      });
+      setModalInfo({
+        isOpen: true,
+        title: 'Enlace Enviado',
+        message: `Hemos enviado un correo a ${profile.user.email} con las instrucciones para restablecer tu contraseña.`
+      });
+    } catch (err) {
+      console.error('[ERROR - RESTABLECER CONTRASEÑA]:', err);
+      setModalInfo({ isOpen: true, title: 'Sin conexión', message: 'No se pudo conectar con el servidor. Intenta de nuevo.' });
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      const res = await fetch(`${API_URL}/api/users/${authUser.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        logout();
+        navigate('/');
+      } else {
+        setModalInfo({ isOpen: true, title: 'No se pudo eliminar', message: data.message || 'Ocurrió un error al eliminar tu cuenta.' });
+      }
+    } catch (err) {
+      console.error('[ERROR - ELIMINAR CUENTA]:', err);
+      setModalInfo({ isOpen: true, title: 'Sin conexión', message: 'No se pudo conectar con el servidor. Intenta de nuevo.' });
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
 
   if (!initialized || loading) {
     return (
@@ -182,7 +295,7 @@ export default function ProfilePage() {
                         title={recipe.title}
                         author={fullName}
                         totalTime={`${recipe.total_time_minutes} min`}
-                        reviewsCount={12}
+                        likesCount={recipe.likes_count}
                         imageSrc={recipe.image_url}
                       />
                     ))}
@@ -208,68 +321,90 @@ export default function ProfilePage() {
                   Editar Tu Perfil
                 </h3>
 
-                {/* Foto de Perfil Mockup */}
-                <div className="mb-8">
-                  <label className="block font-bold text-gray-700 mb-3">Foto de Perfil</label>
-                  <div className="flex items-center gap-4">
-                    <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-3xl font-bold text-gray-500 relative">
-                      AC
-                      <span className="absolute bottom-0 right-0 bg-[#2E5834] text-white p-1 rounded-full text-xs">
-                        📷
-                      </span>
+                <form onSubmit={handleProfileSubmit}>
+                  {/* Foto de Perfil */}
+                  <div className="mb-8">
+                    <label className="block font-bold text-gray-700 mb-3">Foto de Perfil</label>
+                    <div className="flex items-center gap-4">
+                      <label className="cursor-pointer relative block w-20 h-20 rounded-full overflow-hidden bg-gray-200 shrink-0">
+                        {avatarPreview || user.avatar_url ? (
+                          <img
+                            src={avatarPreview || user.avatar_url}
+                            alt="Foto de perfil"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-500">
+                            {(user.first_name?.[0] || '').toUpperCase()}{(user.last_name?.[0] || '').toUpperCase()}
+                          </div>
+                        )}
+                        <span className="absolute bottom-0 right-0 bg-[#2E5834] text-white p-1 rounded-full text-xs">
+                          📷
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarChange}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                        />
+                      </label>
+                      <p className="text-sm text-gray-500">Toca la foto para cambiarla.</p>
                     </div>
                   </div>
-                </div>
 
-                <div className="space-y-6 max-w-xl">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-6 max-w-xl">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Nombre</label>
+                        <input
+                          type="text"
+                          value={editForm.first_name}
+                          onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#2E5834]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Apellido</label>
+                        <input
+                          type="text"
+                          value={editForm.last_name}
+                          onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#2E5834]"
+                        />
+                      </div>
+                    </div>
+
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1">Nombre</label>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Sitio Web / Redes</label>
                       <input
                         type="text"
-                        defaultValue={user.first_name}
+                        placeholder="https://..."
+                        value={editForm.website}
+                        onChange={(e) => setEditForm({ ...editForm, website: e.target.value })}
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#2E5834]"
                       />
                     </div>
+
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1">Apellido</label>
-                      <input
-                        type="text"
-                        defaultValue={user.last_name}
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Sobre Mí</label>
+                      <textarea
+                        rows="3"
+                        placeholder="Cuéntanos sobre ti y tu pasión por la cocina..."
+                        value={editForm.about_me}
+                        onChange={(e) => setEditForm({ ...editForm, about_me: e.target.value })}
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#2E5834]"
-                      />
+                      ></textarea>
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Sitio Web / Redes</label>
-                    <input
-                      type="text"
-                      placeholder="https://..."
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#2E5834]"
-                    />
+                    <button
+                      type="submit"
+                      disabled={isSavingProfile}
+                      className="bg-[#2E5834] hover:bg-[#1f3d23] text-white font-bold px-8 py-3.5 rounded-full shadow-md transition-all disabled:opacity-50"
+                    >
+                      {isSavingProfile ? 'Guardando...' : 'Actualizar Perfil'}
+                    </button>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Sobre Mí</label>
-                    <textarea
-                      rows="3"
-                      placeholder="Cuéntanos sobre ti y tu pasión por la cocina..."
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#2E5834]"
-                    ></textarea>
-                  </div>
-
-                  <button
-                    onClick={() => setModalInfo({
-                      isOpen: true,
-                      title: '¡Perfil Actualizado!',
-                      message: 'Tus cambios se han guardado correctamente en tu cuenta de Ártemis.'
-                    })}
-                    className="bg-[#2E5834] hover:bg-[#1f3d23] text-white font-bold px-8 py-3.5 rounded-full shadow-md transition-all"
-                  >
-                    Actualizar Perfil
-                  </button>
-                </div>
+                </form>
               </div>
             )}
 
@@ -297,14 +432,24 @@ export default function ProfilePage() {
                       Tu seguridad es nuestra prioridad. Si deseas cambiar tu contraseña, te enviaremos un enlace de restablecimiento seguro a tu correo.
                     </p>
                     <button
-                      onClick={() => setModalInfo({
-                        isOpen: true,
-                        title: 'Enlace Enviado',
-                        message: `Hemos enviado un correo a ${user.email} con las instrucciones para restablecer tu contraseña.`
-                      })}
-                      className="bg-[#2E5834] hover:bg-[#1f3d23] text-white font-bold px-8 py-3.5 rounded-full shadow-md transition-all"
+                      onClick={handleSendPasswordReset}
+                      disabled={isSendingReset}
+                      className="bg-[#2E5834] hover:bg-[#1f3d23] text-white font-bold px-8 py-3.5 rounded-full shadow-md transition-all disabled:opacity-50"
                     >
-                      Restablecer Contraseña
+                      {isSendingReset ? 'Enviando...' : 'Restablecer Contraseña'}
+                    </button>
+                  </div>
+
+                  <div className="pt-6 border-t border-gray-100">
+                    <label className="block text-sm font-bold text-red-600 mb-1">Zona de Peligro</label>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Al eliminar tu cuenta se borrarán permanentemente tus recetas, reseñas, "Me gusta" y todo tu historial en Ártemis. Esta acción no se puede deshacer.
+                    </p>
+                    <button
+                      onClick={() => setShowDeleteAccount(true)}
+                      className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold px-8 py-3.5 rounded-full shadow-sm transition-all"
+                    >
+                      🗑️ Eliminar Cuenta
                     </button>
                   </div>
                 </div>
@@ -380,6 +525,17 @@ export default function ProfilePage() {
         message={modalInfo.message}
         showCancel={false}
         confirmText="Entendido"
+      />
+
+      <CustomModal
+        isOpen={showDeleteAccount}
+        onClose={() => setShowDeleteAccount(false)}
+        onConfirm={handleDeleteAccount}
+        title="¿Eliminar tu cuenta?"
+        message="¿Estás seguro de que deseas eliminar tu cuenta de Ártemis? Todos tus datos se borrarán permanentemente y no podrás recuperarlos."
+        confirmText={isDeletingAccount ? 'Eliminando...' : 'Sí, eliminar cuenta'}
+        cancelText="Cancelar"
+        isDestructive={true}
       />
     </div>
   );

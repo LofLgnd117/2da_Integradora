@@ -37,6 +37,21 @@ export default function SavedRecipesPage() {
       });
   }, [initialized, isAuthenticated, user]);
 
+  const handleRemoveSaved = async (recipeId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/recipes/save/${recipeId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSavedRecipes((prev) => prev.filter((r) => r.id !== recipeId));
+      }
+    } catch (err) {
+      console.error('[ERROR - QUITAR GUARDADO]:', err);
+    }
+  };
+
   if (initialized && !isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#FBFBFB] flex flex-col font-sans">
@@ -98,8 +113,9 @@ export default function SavedRecipesPage() {
                 title={recipe.title}
                 author={recipe.author || 'Alina Cruz'}
                 totalTime={`${recipe.total_time_minutes} min`}
-                reviewsCount={12}
+                likesCount={recipe.likes_count}
                 imageSrc={recipe.image_url}
+                onRemove={handleRemoveSaved}
               />
             ))
           ) : (

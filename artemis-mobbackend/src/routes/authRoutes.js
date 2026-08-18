@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 const { authLimiter } = require('../middleware/rateLimiter');
 const { applyLoginStreak } = require('../services/gamification');
+const { createResetCode, findValidResetCode, consumeResetCode, sendResetEmail } = require('../services/passwordReset');
 
 // ==========================================
 // RUTA: Registro de usuario
@@ -78,6 +79,69 @@ router.post('/login', authLimiter, async (req, res) => {
   } catch (error) {
     console.error('Error al iniciar sesión:', error);
     res.status(500).json({ error: 'Hubo un problema al iniciar sesión.' });
+  }
+});
+
+// ==========================================
+// RUTA: Solicitar código de restablecimiento de contraseña
+// Responde igual exista o no la cuenta, para no revelar qué correos están
+// registrados.
+// ==========================================
+router.post('/olvide-password', authLimiter, async (req, res) => {
+  const genericResponse = { mensaje: 'Si ese correo está registrado, te enviamos un código para restablecer tu contraseña.' };
+  try {
+    const { email } = req.body || {};
+    if (!email?.trim()) {
+      return res.status(400).json({ error: 'Escribe tu correo electrónico.' });
+    }
+
+    const result = await db.query('SELECT id, email FROM users WHERE email = $1', [email.trim().toLowerCase()]);
+
+    if (result.rows.length > 0) {
+      const user = result.rows[0];
+      const code = await createResetCode(db, user.id);
+      sendResetEmail(user.email, code);
+    }
+
+    res.json(genericResponse);
+  } catch (error) {
+    console.error('Error al solicitar restablecimiento:', error);
+    res.status(500).json({ error: 'Hubo un problema al procesar la solicitud.' });
+  }
+});
+
+// ==========================================
+// RUTA: Aplicar nueva contraseña usando el código recibido
+// ==========================================
+router.post('/restablecer-password', authLimiter, async (req, res) => {
+  try {
+    const { email, code, password } = req.body || {};
+
+    if (!email?.trim() || !code || !password) {
+      return res.status(400).json({ error: 'Faltan datos para restablecer la contraseña.' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
+    }
+
+    const userRes = await db.query('SELECT id FROM users WHERE email = $1', [email.trim().toLowerCase()]);
+    if (userRes.rows.length === 0) {
+      return res.status(400).json({ error: 'Código inválido o expirado. Solicita uno nuevo.' });
+    }
+
+    const tokenRow = await findValidResetCode(db, userRes.rows[0].id, code);
+    if (!tokenRow) {
+      return res.status(400).json({ error: 'Código inválido o expirado. Solicita uno nuevo.' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    await db.query('UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [passwordHash, userRes.rows[0].id]);
+    await consumeResetCode(db, tokenRow.id);
+
+    res.json({ mensaje: 'Tu contraseña se actualizó correctamente. Ya puedes iniciar sesión.' });
+  } catch (error) {
+    console.error('Error al restablecer contraseña:', error);
+    res.status(500).json({ error: 'Hubo un problema al restablecer la contraseña.' });
   }
 });
 

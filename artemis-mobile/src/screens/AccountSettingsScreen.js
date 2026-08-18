@@ -61,11 +61,11 @@ export default function AccountSettingsScreen({ navigation }) {
         <View className="mb-8">
           <Text className="text-black text-base font-bold mb-2">Contraseña</Text>
           <Text className="text-[#F7F4D5] text-sm mb-4 leading-5">
-            Por ahora el restablecimiento de contraseña por correo aún no está disponible. Si la olvidaste, contacta al equipo de soporte.
+            Te enviaremos un código de 6 dígitos a tu correo para crear una nueva contraseña.
           </Text>
           <TouchableOpacity
-            className="bg-[#0A3323]/50 rounded-xl py-4 items-center"
-            onPress={() => Alert.alert('Próximamente', 'El restablecimiento de contraseña por correo estará disponible pronto.')}
+            className="bg-[#0A3323] rounded-xl py-4 items-center"
+            onPress={() => navigation.navigate('ForgotPassword', { email: user?.email })}
           >
             <Text className="text-[#F7F4D5] text-base font-bold">Restablecer Contraseña</Text>
           </TouchableOpacity>

@@ -9,14 +9,17 @@ export default function RecipeCard({
   title,
   author = 'Alina Cruz',
   totalTime,
-  reviewsCount = 12,
-  imageSrc
+  likesCount = 0,
+  imageSrc,
+  onRemove
 }) {
   const navigate = useNavigate();
   const { token, isAuthenticated } = useAuth();
   // Estado para cambiar visualmente el icono cuando el usuario lo guarda
   const [isSaved, setIsSaved] = useState(false);
   const [modal, setModal] = useState({ isOpen: false, title: '', message: '' });
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
 
   // Función para guardar directamente desde la tarjeta
   const handleBookmarkClick = async (e) => {
@@ -56,6 +59,21 @@ export default function RecipeCard({
     }
   };
 
+  const handleRemoveClick = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setShowRemoveConfirm(true);
+  };
+
+  const confirmRemove = async () => {
+    setIsRemoving(true);
+    try {
+      await onRemove(id);
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+
   return (
     <>
     <div
@@ -69,6 +87,18 @@ export default function RecipeCard({
           alt={title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
+
+        {/* BOTÓN DE QUITAR DE GUARDADAS (solo aparece si el padre lo habilita) */}
+        {onRemove && (
+          <button
+            onClick={handleRemoveClick}
+            title="Quitar de guardadas"
+            disabled={isRemoving}
+            className="absolute top-3 left-3 w-10 h-10 rounded-full flex items-center justify-center shadow-md bg-red-50/95 hover:bg-red-100 text-red-500 transition-all duration-200"
+          >
+            🗑️
+          </button>
+        )}
 
         {/* BOTÓN DE MARCADOR (BOOKMARK) CLICLEABLE */}
         <button
@@ -118,7 +148,7 @@ export default function RecipeCard({
             ⏱️ {totalTime}
           </span>
           <span className="text-[#2E5834] font-bold text-xs bg-[#839958]/15 px-2.5 py-1 rounded-full">
-            ★ {reviewsCount} reseñas
+            ❤️ {likesCount}
           </span>
         </div>
       </div>
@@ -131,6 +161,17 @@ export default function RecipeCard({
       message={modal.message}
       showCancel={false}
       confirmText="Entendido"
+    />
+
+    <CustomModal
+      isOpen={showRemoveConfirm}
+      onClose={() => setShowRemoveConfirm(false)}
+      onConfirm={confirmRemove}
+      title="Quitar Guardado"
+      message={`¿Estás seguro de que deseas quitar "${title}" de tus recetas guardadas?`}
+      confirmText="Sí, quitar receta"
+      cancelText="Cancelar"
+      isDestructive={true}
     />
     </>
   );

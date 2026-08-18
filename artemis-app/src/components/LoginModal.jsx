@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../config/api';
 
 export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
   const { login } = useAuth();
@@ -10,6 +11,13 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Modo "olvidé mi contraseña" dentro del mismo modal
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
 
   // Si el modal no está activo, no renderiza nada
   if (!isOpen) return null;
@@ -30,6 +38,37 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgotSubmit = async (e) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/auth/olvide-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setForgotSent(true);
+      } else {
+        setForgotError(data.message || 'No se pudo procesar la solicitud.');
+      }
+    } catch (err) {
+      console.error('Error al solicitar restablecimiento:', err);
+      setForgotError('No se pudo conectar con el servidor. Intenta de nuevo.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const backToLogin = () => {
+    setShowForgot(false);
+    setForgotSent(false);
+    setForgotEmail('');
+    setForgotError('');
   };
 
   return (
@@ -67,6 +106,78 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
 
         {/* COLUMNA DERECHA: Formulario de Login */}
         <div className="lg:w-7/12 p-8 md:p-14 flex flex-col justify-center">
+        {showForgot ? (
+          <>
+            {/* Cabecera del formulario de restablecimiento */}
+            <div className="mb-8">
+              <span className="text-[#839958] font-bold tracking-wider text-sm uppercase block mb-1">
+                Comunidad Ártemis
+              </span>
+              <h1 className="text-[#1D1D1D] text-3xl md:text-4xl font-bold">
+                Recuperar Contraseña
+              </h1>
+            </div>
+
+            {forgotSent ? (
+              <div>
+                <div className="bg-[#839958]/15 text-[#2E5834] p-5 rounded-2xl mb-6 font-semibold">
+                  ✓ Si ese correo está registrado, te enviamos un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada.
+                </div>
+                <button
+                  type="button"
+                  onClick={backToLogin}
+                  className="text-[#2E5834] hover:text-[#1f3d23] font-bold text-lg underline transition-colors"
+                >
+                  Volver a Iniciar Sesión
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-gray-500 mb-6">Escribe tu correo y te mandaremos un enlace para crear una nueva contraseña.</p>
+
+                {forgotError && (
+                  <div className="bg-red-50 text-red-700 p-4 rounded-2xl mb-6 font-semibold text-center">
+                    ⚠️ {forgotError}
+                  </div>
+                )}
+
+                <form onSubmit={handleForgotSubmit} className="flex flex-col gap-6">
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="forgotEmail" className="text-[#444444] text-lg font-medium">
+                      Correo Electrónico
+                    </label>
+                    <input
+                      id="forgotEmail"
+                      type="email"
+                      required
+                      placeholder="Escribe tu correo electrónico"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      className="w-full text-[#1D1D1D] placeholder-[#ACACAC] bg-white text-lg py-3.5 px-5 rounded-xl border border-gray-300 focus:border-[#2E5834] focus:ring-2 focus:ring-[#2E5834]/20 outline-none transition-all"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={forgotLoading}
+                    className="w-full bg-[#839958] hover:bg-[#72874b] text-white font-bold text-xl py-4 rounded-xl shadow-md transition-all transform active:scale-98 disabled:opacity-60"
+                  >
+                    {forgotLoading ? 'Enviando...' : 'Enviar Enlace'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={backToLogin}
+                    className="text-[#2E5834] hover:text-[#1f3d23] font-bold text-base underline transition-colors self-center"
+                  >
+                    Volver a Iniciar Sesión
+                  </button>
+                </form>
+              </>
+            )}
+          </>
+        ) : (
+          <>
           {/* Cabecera del formulario */}
           <div className="mb-8">
             <span className="text-[#839958] font-bold tracking-wider text-sm uppercase block mb-1">
@@ -133,6 +244,13 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
                   )}
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={() => setShowForgot(true)}
+                className="text-[#2E5834] hover:text-[#1f3d23] font-semibold text-sm underline self-end transition-colors"
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
             </div>
 
             {/* Botón Principal de Inicio de Sesión */}
@@ -161,6 +279,8 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
               Regístrate aquí
             </button>
           </div>
+          </>
+        )}
         </div>
       </div>
     </div>

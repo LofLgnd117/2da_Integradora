@@ -110,7 +110,10 @@ export default function LoginScreen({ navigation }) {
           )}
 
           {/* OLVIDÉ MI CONTRASEÑA */}
-          <TouchableOpacity className="self-end py-2 min-h-[48px] justify-center mb-8">
+          <TouchableOpacity
+            onPress={() => navigation.navigate('ForgotPassword', { email })}
+            className="self-end py-2 min-h-[48px] justify-center mb-8"
+          >
             <Text className="text-[#0A3323] text-base font-bold">
               ¿Olvidaste tu contraseña?
             </Text>
