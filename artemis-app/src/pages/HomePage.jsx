@@ -30,7 +30,7 @@ export default function HomePage() {
       <Navbar />
 
       {/* Sub-menú de Categorías */}
-      <div className="bg-white border-b border-gray-200 py-3 px-6 shadow-sm flex justify-center gap-8 md:gap-16 text-lg font-medium text-[#1D1D1D]">
+      <div className="bg-white border-b border-gray-200 py-[13.2px] px-6 shadow-sm flex justify-center gap-[35.2px] md:gap-[70.4px] text-[19.8px] font-medium text-[#1D1D1D]">
         <button onClick={() => navigate('/buscar?categoria=Populares')} className="hover:text-[#2E5834] transition-colors">Populares</button>
         <button onClick={() => navigate('/buscar?categoria=Comidas y Platillos')} className="hover:text-[#2E5834] transition-colors">Comidas y Platillos</button>
         <button onClick={() => navigate('/buscar?categoria=Dietas')} className="hover:text-[#2E5834] transition-colors">Dietas</button>

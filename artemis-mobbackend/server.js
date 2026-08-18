@@ -11,6 +11,7 @@ const { uploadDir } = require('./src/middleware/upload');
 const authRoutes = require('./src/routes/authRoutes');
 const recipeRoutes = require('./src/routes/recipeRoutes');
 const userRoutes = require('./src/routes/userRoutes');
+const notificationRoutes = require('./src/routes/notificationRoutes');
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.get('/', (req, res) => {
 app.use('/api', authRoutes);
 app.use('/api/recetas', recipeRoutes);
 app.use('/api/usuarios', userRoutes);
+app.use('/api/notificaciones', notificationRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

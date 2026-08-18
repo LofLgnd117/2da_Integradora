@@ -7,12 +7,19 @@ import { useAuth } from "../context/AuthContext";
 const DEFAULT_AVATAR = "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/p0afafy0_expires_30_days.png";
 const DEFAULT_RECIPE_IMAGE = "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/3zdM7I85eL/jetwaqsi_expires_30_days.png";
 
+const BADGES_CATALOG = [
+  { type: 'critico_del_barrio', emoji: '🥉', label: 'Crítico del Barrio', description: 'Publica tu primera reseña en la receta de alguien más.' },
+  { type: 'maestro_del_orden', emoji: '🥈', label: 'Maestro del Orden', description: 'Guarda tu segunda receta en Recetas Guardadas.' },
+  { type: 'receta_de_oro', emoji: '🥇', label: 'Receta de Oro', description: 'Recibe tu primer "Me Gusta" en una receta tuya.' },
+];
+
 export default function ProfileScreen({ navigation }) {
   const { user, authFetch } = useAuth();
   const [activeTab, setActiveTab] = useState('Mis Recetas');
 
   const [myRecipes, setMyRecipes] = useState([]);
   const [savedRecipes, setSavedRecipes] = useState([]);
+  const [profileDetail, setProfileDetail] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -22,14 +29,17 @@ export default function ProfileScreen({ navigation }) {
   const fetchProfileData = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const [recipesRes, savedRes] = await Promise.all([
+      const [recipesRes, savedRes, detailRes] = await Promise.all([
         authFetch(`/api/usuarios/${user.id}/recetas`),
         authFetch('/api/recetas/guardadas'),
+        authFetch(`/api/usuarios/${user.id}`),
       ]);
       const recipesData = await recipesRes.json();
       const savedData = await savedRes.json();
+      const detailData = await detailRes.json();
       setMyRecipes(Array.isArray(recipesData) ? recipesData : []);
       setSavedRecipes(Array.isArray(savedData) ? savedData : []);
+      setProfileDetail(detailData);
     } catch (error) {
       console.error("Error cargando datos del perfil:", error);
     } finally {
@@ -128,6 +138,15 @@ export default function ProfileScreen({ navigation }) {
                 Guardadas ({savedRecipes.length})
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setActiveTab('Logros')}
+              className={`flex-1 items-center py-3 rounded-lg ${activeTab === 'Logros' ? 'bg-[#0A3323]' : 'bg-transparent'}`}
+            >
+              <Text className={`font-bold ${activeTab === 'Logros' ? 'text-[#F7F4D5]' : 'text-[#0A3323]'}`}>
+                🏆 Logros
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {isLoading ? (
@@ -210,6 +229,52 @@ export default function ProfileScreen({ navigation }) {
                       </Text>
                     </View>
                   )}
+                </View>
+              )}
+
+              {/* CONTENIDO 3: LOGROS Y RACHA */}
+              {activeTab === 'Logros' && (
+                <View className="pb-4">
+                  <View className="bg-[#0A3323] rounded-3xl p-6 mb-6">
+                    <Text className="text-[#F7F4D5] text-2xl font-bold mb-1">
+                      🔥 Racha: {profileDetail?.current_streak || 0} {(profileDetail?.current_streak || 0) === 1 ? 'Día' : 'Días'}
+                    </Text>
+                    <Text className="text-[#F7F4D5]/80 text-sm mb-4">
+                      {profileDetail?.current_streak
+                        ? 'Sigue entrando cada día para mantener tu racha activa.'
+                        : 'Inicia sesión días seguidos para empezar tu racha de cocina.'}
+                    </Text>
+                    <View className="bg-[#F7F4D5]/10 rounded-2xl p-4 border border-[#F7F4D5]/20">
+                      <Text className="text-[#F7F4D5]/80 text-xs font-bold uppercase mb-2">Salvavidas Disponibles</Text>
+                      <View className="flex-row">
+                        {[0, 1, 2].map((i) => (
+                          <Text key={i} className="text-xl mr-2" style={{ opacity: i < (profileDetail?.streak_saves_left || 0) ? 1 : 0.3 }}>
+                            🛡️
+                          </Text>
+                        ))}
+                      </View>
+                    </View>
+                  </View>
+
+                  <Text className="text-black text-xl font-bold mb-4">Medallas de Honor</Text>
+                  {BADGES_CATALOG.map((badge) => {
+                    const unlocked = (profileDetail?.badges || []).some((b) => b.badge_type === badge.type);
+                    return (
+                      <View
+                        key={badge.type}
+                        className={`flex-row items-center p-4 rounded-2xl mb-3 ${unlocked ? 'bg-white border-2 border-[#0A3323]' : 'bg-white/60 border border-[#0A3323]/10'}`}
+                      >
+                        <View className={`w-12 h-12 rounded-xl items-center justify-center mr-4 ${unlocked ? 'bg-[#0A3323]' : 'bg-[#839958]/20'}`}>
+                          <Text className="text-2xl">{badge.emoji}</Text>
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-black font-bold">{badge.label}</Text>
+                          <Text className="text-[#444444] text-xs mt-0.5">{badge.description}</Text>
+                        </View>
+                        <Text className="text-lg">{unlocked ? '✨' : '🔒'}</Text>
+                      </View>
+                    );
+                  })}
                 </View>
               )}
             </>

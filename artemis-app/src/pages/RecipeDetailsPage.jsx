@@ -14,9 +14,13 @@ export default function RecipeDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [modalNotice, setModalNotice] = useState({ isOpen: false, title: '', message: '' });
+  const [isLiking, setIsLiking] = useState(false);
+  const [reviewText, setReviewText] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
-  useEffect(() => {
-    fetch(`${API_URL}/api/recipes/${id}`)
+  const fetchRecipe = () => {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    fetch(`${API_URL}/api/recipes/${id}`, { headers })
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
@@ -28,7 +32,81 @@ export default function RecipeDetailsPage() {
         console.error('[ERROR - DETALLE RECETA]:', err);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchRecipe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  const handleToggleLike = async () => {
+    if (!isAuthenticated) {
+      setModalNotice({
+        isOpen: true,
+        title: 'Inicia sesión primero',
+        message: 'Necesitas iniciar sesión para darle "Me gusta" a una receta.'
+      });
+      return;
+    }
+    if (isLiking) return;
+    setIsLiking(true);
+    const previous = { likedByMe: recipe.likedByMe, likesCount: recipe.likesCount };
+    setRecipe((prev) => ({
+      ...prev,
+      likedByMe: !prev.likedByMe,
+      likesCount: prev.likedByMe ? prev.likesCount - 1 : prev.likesCount + 1
+    }));
+    try {
+      const res = await fetch(`${API_URL}/api/recipes/${id}/like`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRecipe((prev) => ({ ...prev, likedByMe: data.liked, likesCount: data.likesCount }));
+      } else {
+        setRecipe((prev) => ({ ...prev, ...previous }));
+      }
+    } catch (err) {
+      console.error('Error al actualizar "Me gusta":', err);
+      setRecipe((prev) => ({ ...prev, ...previous }));
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!isAuthenticated) {
+      setModalNotice({
+        isOpen: true,
+        title: 'Inicia sesión primero',
+        message: 'Necesitas iniciar sesión para escribir una reseña.'
+      });
+      return;
+    }
+    if (!reviewText.trim()) return;
+
+    setIsSubmittingReview(true);
+    try {
+      const res = await fetch(`${API_URL}/api/recipes/${id}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ comment: reviewText.trim() })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRecipe((prev) => ({ ...prev, reviews: [data.review, ...(prev.reviews || [])] }));
+        setReviewText('');
+      } else {
+        setModalNotice({ isOpen: true, title: 'No se pudo publicar', message: data.message || 'Ocurrió un error al publicar tu reseña.' });
+      }
+    } catch (err) {
+      console.error('Error al publicar reseña:', err);
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   // FUNCIÓN PARA GUARDAR EN FAVORITOS NO MOVER
  const handleSaveRecipe = async () => {
@@ -144,12 +222,26 @@ const executeDelete = async () => {
 
             {/* --- BOTONES DE ACCIÓN: GUARDAR (IZQUIERDA) Y ELIMINAR (DERECHA SEPARADO) --- */}
             <div className="mt-8 pt-6 border-t border-gray-200/60 flex flex-wrap items-center justify-between gap-4">
-              <button
-                onClick={handleSaveRecipe}
-                className="bg-[#839958]/20 hover:bg-[#839958]/30 text-[#2E5834] font-bold px-6 py-3 rounded-full text-base flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
-              >
-                <span>🔖</span> Guardar en mi colección
-              </button>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={handleSaveRecipe}
+                  className="bg-[#839958]/20 hover:bg-[#839958]/30 text-[#2E5834] font-bold px-6 py-3 rounded-full text-base flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
+                >
+                  <span>🔖</span> Guardar en mi colección
+                </button>
+
+                <button
+                  onClick={handleToggleLike}
+                  disabled={isLiking}
+                  className={`font-bold px-6 py-3 rounded-full text-base flex items-center gap-2 transition-colors shadow-sm cursor-pointer ${
+                    recipe.likedByMe
+                      ? 'bg-[#2E5834] text-white hover:bg-[#1f3d23]'
+                      : 'bg-[#839958]/20 hover:bg-[#839958]/30 text-[#2E5834]'
+                  }`}
+                >
+                  <span>{recipe.likedByMe ? '❤️' : '🤍'}</span> {recipe.likesCount}
+                </button>
+              </div>
 
             {/* BOTÓN ELIMINAR: solo visible si el usuario logueado es el dueño de la receta */}
               {isOwner && (
@@ -180,7 +272,7 @@ const executeDelete = async () => {
           </div>
           <div className="p-3">
             <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Dificultad</p>
-            <p className="text-2xl font-black text-[#2E5834]">Fácil</p>
+            <p className="text-2xl font-black text-[#2E5834]">{recipe.difficulty || 'Fácil'}</p>
           </div>
           <div className="p-3">
             <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Autor</p>
@@ -242,52 +334,56 @@ const executeDelete = async () => {
           </div>
         </div>
 
-        {/* TABLA NUTRICIONAL Y RESEÑAS */}
+        {/* RESEÑAS */}
         <section className="border-t border-gray-200 pt-12">
-          <h2 className="text-2xl font-black text-[#1D1D1D] mb-6">Información Nutricional (Por porción)</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-14">
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 text-center">
-              <p className="text-gray-400 font-bold text-sm">Calorías</p>
-              <p className="text-3xl font-black text-[#1D1D1D] mt-1">320 kcal</p>
-            </div>
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 text-center">
-              <p className="text-gray-400 font-bold text-sm">Proteínas</p>
-              <p className="text-3xl font-black text-[#1D1D1D] mt-1">24 g</p>
-            </div>
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 text-center">
-              <p className="text-gray-400 font-bold text-sm">Carbohidratos</p>
-              <p className="text-3xl font-black text-[#1D1D1D] mt-1">18 g</p>
-            </div>
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 text-center">
-              <p className="text-gray-400 font-bold text-sm">Grasas Saludables</p>
-              <p className="text-3xl font-black text-[#1D1D1D] mt-1">12 g</p>
-            </div>
-          </div>
-
           <div className="bg-white p-8 md:p-10 rounded-[32px] border border-gray-100 shadow-sm">
-            <h3 className="text-2xl font-black text-[#1D1D1D] mb-6">Reseñas de la Comunidad (12)</h3>
-            <div className="border-b border-gray-100 pb-6 mb-6">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-full bg-[#839958] text-white font-bold flex items-center justify-center">
-                  M
-                </div>
-                <div>
-                  <p className="font-bold text-[#1D1D1D]">Martha Gómez</p>
-                  <p className="text-xs text-gray-400">Hace 2 días</p>
-                </div>
+            <h3 className="text-2xl font-black text-[#1D1D1D] mb-6">
+              Reseñas de la Comunidad ({recipe.reviews ? recipe.reviews.length : 0})
+            </h3>
+
+            {isAuthenticated ? (
+              <form onSubmit={handleSubmitReview} className="mb-8">
+                <textarea
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  placeholder="Cuéntale a la comunidad qué te pareció esta receta..."
+                  rows="3"
+                  className="w-full px-5 py-4 rounded-2xl border border-gray-200 focus:outline-none focus:border-[#2E5834] text-base bg-[#FBFBFB] mb-3"
+                ></textarea>
+                <button
+                  type="submit"
+                  disabled={isSubmittingReview || !reviewText.trim()}
+                  className="bg-[#2E5834] text-white px-8 py-3 rounded-full font-bold hover:bg-[#1f3d23] transition-colors disabled:opacity-50"
+                >
+                  {isSubmittingReview ? 'Publicando...' : 'Publicar reseña'}
+                </button>
+              </form>
+            ) : (
+              <p className="text-gray-500 mb-8">Inicia sesión para escribir una reseña.</p>
+            )}
+
+            {recipe.reviews && recipe.reviews.length > 0 ? (
+              <div className="space-y-6">
+                {recipe.reviews.map((review) => (
+                  <div key={review.id} className="border-b border-gray-100 pb-6 last:border-0">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 rounded-full bg-[#839958] text-white font-bold flex items-center justify-center">
+                        {review.author?.charAt(0) || '?'}
+                      </div>
+                      <div>
+                        <p className="font-bold text-[#1D1D1D]">{review.author}</p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(review.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-gray-600 text-lg">{review.comment_text}</p>
+                  </div>
+                ))}
               </div>
-              <p className="text-gray-600 text-lg">
-                "¡Excelente receta! Muy fácil de seguir y el sabor quedó maravilloso. A toda mi familia le encantó."
-              </p>
-            </div>
-            <div className="text-center">
-              <button
-                onClick={() => alert('¡Función de comentarios en vivo disponible en Fase 2!')}
-                className="bg-[#2E5834] text-white px-8 py-3 rounded-full font-bold hover:bg-[#1f3d23] transition-colors"
-              >
-                Escribir una reseña
-              </button>
-            </div>
+            ) : (
+              <p className="text-gray-500 text-center py-6">Aún no hay reseñas. ¡Sé el primero en escribir una!</p>
+            )}
           </div>
         </section>
         {/* MODAL DE CONFIRMACIÓN DE ELIMINADO */}

@@ -15,6 +15,26 @@ async function parseJsonSafely(response) {
   }
 }
 
+const REQUEST_TIMEOUT_MS = 12000;
+
+// fetch en React Native no tiene límite de tiempo por defecto: si el servidor
+// no es alcanzable (IP equivocada, servidor apagado, otra red Wi-Fi), la
+// petición se queda esperando indefinidamente sin avisar nada al usuario.
+async function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('No se pudo conectar con el servidor. Verifica que estés en la misma red Wi-Fi que el servidor y que esté encendido.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
@@ -47,7 +67,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = useCallback(async (email, password) => {
-    const response = await fetch(`${API_BASE_URL}/api/login`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/api/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -61,7 +81,7 @@ export function AuthProvider({ children }) {
   }, [persistSession]);
 
   const register = useCallback(async (firstName, lastName, email, password) => {
-    const response = await fetch(`${API_BASE_URL}/api/registro`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/api/registro`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password }),
@@ -94,7 +114,7 @@ export function AuthProvider({ children }) {
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
-    return fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+    return fetchWithTimeout(`${API_BASE_URL}${path}`, { ...options, headers });
   }, [token]);
 
   const value = useMemo(() => ({

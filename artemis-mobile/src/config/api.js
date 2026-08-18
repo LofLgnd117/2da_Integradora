@@ -2,7 +2,10 @@ import Constants from 'expo-constants';
 
 // Se usa si Metro no logra detectar automáticamente la IP de tu computadora
 // en la red local (por ejemplo, al correr en un build standalone).
-const FALLBACK_HOST = '10.155.34.65';
+// IMPORTANTE: esta IP cambia si te reconectas al Wi-Fi o cambias de red.
+// Revisa la IPv4 actual con "ipconfig" (Windows) y actualízala aquí si el
+// login se queda cargando sin responder.
+const FALLBACK_HOST = '192.168.1.70';
 const PORT = 3000;
 
 function detectHost() {

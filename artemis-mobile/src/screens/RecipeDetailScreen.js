@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, ScrollView, Text, Image, TouchableOpacity, StatusBar, ActivityIndicator, Modal, Alert } from "react-native";
+import { View, ScrollView, Text, Image, TouchableOpacity, TextInput, StatusBar, ActivityIndicator, Modal, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { API_BASE_URL } from "../config/api";
@@ -7,11 +7,14 @@ import { useAuth } from "../context/AuthContext";
 
 export default function RecipeDetailScreen({ route, navigation }) {
   const { recipeId } = route.params;
-  const { authFetch } = useAuth();
+  const { authFetch, isAuthenticated } = useAuth();
   const [recipe, setRecipe] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Ingredientes');
   const [isSaving, setIsSaving] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
+  const [reviewText, setReviewText] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   // NUEVO ESTADO: Controla si el modal personalizado se ve o no
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
@@ -74,6 +77,64 @@ export default function RecipeDetailScreen({ route, navigation }) {
     }
   };
 
+  const toggleLike = async () => {
+    if (!recipe || isLiking) return;
+    if (!isAuthenticated) {
+      Alert.alert('Inicia sesión', 'Necesitas iniciar sesión para darle "Me gusta" a una receta.');
+      return;
+    }
+    setIsLiking(true);
+    const previous = { le_gusta: recipe.le_gusta, likes_count: recipe.likes_count };
+    setRecipe((prev) => ({
+      ...prev,
+      le_gusta: !prev.le_gusta,
+      likes_count: prev.le_gusta ? prev.likes_count - 1 : prev.likes_count + 1,
+    }));
+    try {
+      const response = await authFetch(`/api/recetas/${recipeId}/like`, { method: 'POST' });
+      const data = await response.json();
+      if (response.ok) {
+        setRecipe((prev) => ({ ...prev, le_gusta: data.le_gusta, likes_count: data.likes_count }));
+      } else {
+        setRecipe((prev) => ({ ...prev, ...previous }));
+      }
+    } catch (error) {
+      console.error('Error al actualizar "me gusta":', error);
+      setRecipe((prev) => ({ ...prev, ...previous }));
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
+  const submitReview = async () => {
+    if (!isAuthenticated) {
+      Alert.alert('Inicia sesión', 'Necesitas iniciar sesión para escribir una reseña.');
+      return;
+    }
+    if (!reviewText.trim()) return;
+
+    setIsSubmittingReview(true);
+    try {
+      const response = await authFetch(`/api/recetas/${recipeId}/resenas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comentario: reviewText.trim() }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setRecipe((prev) => ({ ...prev, resenas: [data.resena, ...(prev.resenas || [])] }));
+        setReviewText('');
+      } else {
+        Alert.alert('No se pudo publicar', data.error || 'Ocurrió un error al publicar tu reseña.');
+      }
+    } catch (error) {
+      console.error('Error al publicar reseña:', error);
+      Alert.alert('Sin conexión', 'No se pudo publicar tu reseña.');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-[#839958] justify-center items-center">
@@ -124,6 +185,14 @@ export default function RecipeDetailScreen({ route, navigation }) {
               )}
 
               <TouchableOpacity
+                onPress={toggleLike}
+                disabled={isLiking}
+                className="w-10 h-10 bg-[#F7F4D5]/90 rounded-full items-center justify-center mr-3 flex-row"
+              >
+                <Text className="text-black text-xl">{recipe.le_gusta ? '❤️' : '🤍'}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
                 onPress={toggleSaved}
                 disabled={isSaving}
                 className="w-10 h-10 bg-[#F7F4D5]/90 rounded-full items-center justify-center"
@@ -139,21 +208,28 @@ export default function RecipeDetailScreen({ route, navigation }) {
         <View className="flex-1 bg-[#F7F4D5] -mt-8 rounded-t-3xl px-6 pt-8 pb-10 shadow-lg">
 
           <Text className="text-black text-3xl font-bold mb-2 leading-tight">{recipe.title}</Text>
-          <Text className="text-[#0A3323] text-base font-bold mb-6">por {recipe.chef}</Text>
+          <View className="flex-row items-center justify-between mb-6">
+            <Text className="text-[#0A3323] text-base font-bold">por {recipe.chef}</Text>
+            <Text className="text-[#0A3323] text-base font-bold">{recipe.le_gusta ? '❤️' : '🤍'} {recipe.likes_count} Me gusta</Text>
+          </View>
 
           {/* ESTADÍSTICAS RÁPIDAS */}
-          <View className="flex-row justify-between items-center mb-6 py-4 border-y border-[#839958]/30">
-            <View className="items-center">
+          <View className="flex-row flex-wrap mb-6 py-4 border-y border-[#839958]/30">
+            <View className="items-center w-1/2 mb-4">
               <Text className="text-[#839958] text-sm font-bold mb-1">⏱ Tiempo</Text>
               <Text className="text-black text-base font-bold">{recipe.total_time_minutes} min</Text>
             </View>
-            <View className="items-center border-x border-[#839958]/30 px-6">
+            <View className="items-center w-1/2 mb-4">
               <Text className="text-[#839958] text-sm font-bold mb-1">🍽 Porciones</Text>
               <Text className="text-black text-base font-bold">{recipe.servings} pers.</Text>
             </View>
-            <View className="items-center">
+            <View className="items-center w-1/2">
               <Text className="text-[#839958] text-sm font-bold mb-1">🏷 Categoría</Text>
               <Text className="text-black text-base font-bold">{recipe.category}</Text>
+            </View>
+            <View className="items-center w-1/2">
+              <Text className="text-[#839958] text-sm font-bold mb-1">📊 Dificultad</Text>
+              <Text className="text-black text-base font-bold">{recipe.difficulty}</Text>
             </View>
           </View>
 
@@ -173,6 +249,13 @@ export default function RecipeDetailScreen({ route, navigation }) {
               className={`flex-1 items-center py-3 rounded-lg ${activeTab === 'Instrucciones' ? 'bg-[#0A3323]' : 'bg-transparent'}`}
             >
               <Text className={`text-sm font-bold ${activeTab === 'Instrucciones' ? 'text-[#F7F4D5]' : 'text-black'}`}>Instrucciones</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setActiveTab('Reseñas')}
+              className={`flex-1 items-center py-3 rounded-lg ${activeTab === 'Reseñas' ? 'bg-[#0A3323]' : 'bg-transparent'}`}
+            >
+              <Text className={`text-sm font-bold ${activeTab === 'Reseñas' ? 'text-[#F7F4D5]' : 'text-black'}`}>Reseñas ({recipe.resenas?.length || 0})</Text>
             </TouchableOpacity>
           </View>
 
@@ -225,6 +308,59 @@ export default function RecipeDetailScreen({ route, navigation }) {
                     {recipe.chef_tips}
                   </Text>
                 </View>
+              )}
+            </View>
+          )}
+
+          {/* VISTA 3: RESEÑAS */}
+          {activeTab === 'Reseñas' && (
+            <View className="mb-8">
+              {isAuthenticated ? (
+                <View className="mb-6">
+                  <TextInput
+                    placeholder="Cuéntale a la comunidad qué te pareció esta receta..."
+                    placeholderTextColor="#839958"
+                    value={reviewText}
+                    onChangeText={setReviewText}
+                    multiline
+                    numberOfLines={3}
+                    textAlignVertical="top"
+                    className="bg-[#EAECE3] text-black text-base rounded-xl px-4 py-3 min-h-[80px] mb-3"
+                  />
+                  <TouchableOpacity
+                    onPress={submitReview}
+                    disabled={isSubmittingReview || !reviewText.trim()}
+                    className="bg-[#0A3323] rounded-xl py-3 items-center"
+                    style={{ opacity: isSubmittingReview || !reviewText.trim() ? 0.6 : 1 }}
+                  >
+                    <Text className="text-[#F7F4D5] font-bold">
+                      {isSubmittingReview ? 'Publicando...' : 'Publicar reseña'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <Text className="text-black text-center mb-6">Inicia sesión para escribir una reseña.</Text>
+              )}
+
+              {recipe.resenas && recipe.resenas.length > 0 ? (
+                recipe.resenas.map((resena) => (
+                  <View key={resena.id} className="mb-5 pb-5 border-b border-[#D9D9D9]">
+                    <View className="flex-row items-center mb-2">
+                      <View className="w-9 h-9 rounded-full bg-[#839958] items-center justify-center mr-3">
+                        <Text className="text-[#F7F4D5] font-bold">{resena.author?.charAt(0) || '?'}</Text>
+                      </View>
+                      <View>
+                        <Text className="text-black font-bold">{resena.author}</Text>
+                        <Text className="text-[#839958] text-xs">
+                          {new Date(resena.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text className="text-[#444444] text-base leading-relaxed">{resena.comment_text}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text className="text-black text-center mt-4">Aún no hay reseñas. ¡Sé el primero en escribir una!</Text>
               )}
             </View>
           )}

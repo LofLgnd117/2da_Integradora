@@ -17,6 +17,8 @@ export default function AddRecipeScreen({ navigation }) {
   const categoriesList = ['Comidas y Platillos', 'Dietas', 'Populares', 'Desayuno', 'Comida', 'Cena'];
 
   const [chefTips, setChefTips] = useState('');
+  const [difficulty, setDifficulty] = useState('Fácil');
+  const difficultyOptions = ['Fácil', 'Media', 'Difícil'];
   const [ingredients, setIngredients] = useState([{ name: '', quantity: '' }]);
   const [steps, setSteps] = useState(['']);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -70,6 +72,7 @@ export default function AddRecipeScreen({ navigation }) {
       formData.append('porciones', servings);
       formData.append('tiempo', prepTime);
       formData.append('categoria', category || 'Comidas y Platillos');
+      formData.append('dificultad', difficulty);
       formData.append('chef_tips', chefTips);
       formData.append('ingredientes', JSON.stringify(ingredients.filter(i => i.name.trim() !== '')));
       formData.append('pasos', JSON.stringify(steps.filter(s => s.trim() !== '')));
@@ -204,6 +207,25 @@ export default function AddRecipeScreen({ navigation }) {
               </TouchableOpacity>
             ))}
           </ScrollView>
+        </View>
+
+        <View className="mb-8">
+          <Text className="text-black text-base font-bold mb-3">Dificultad</Text>
+          <View className="flex-row">
+            {difficultyOptions.map((opt) => (
+              <TouchableOpacity
+                key={opt}
+                onPress={() => setDifficulty(opt)}
+                className={`py-3 px-5 rounded-full mr-2 border border-[#0A3323]/20 ${
+                  difficulty === opt ? 'bg-[#0A3323]' : 'bg-[#F7F4D5]'
+                }`}
+              >
+                <Text className={`font-bold text-sm ${difficulty === opt ? 'text-[#F7F4D5]' : 'text-[#0A3323]'}`}>
+                  {opt}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         <View className="mb-8">

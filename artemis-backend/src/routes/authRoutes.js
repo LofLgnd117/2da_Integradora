@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 const { authLimiter } = require('../middleware/rateLimiter');
+const { applyLoginStreak } = require('../services/gamification');
 
 const SALT_ROUNDS = 10;
 const TOKEN_EXPIRES_IN = '30d';
@@ -44,8 +45,9 @@ router.post('/registro', authLimiter, async (req, res) => {
 
     const user = insertRes.rows[0];
     const token = signToken(user.id);
+    const streak = await applyLoginStreak(db, user.id);
 
-    res.status(201).json({ success: true, token, user });
+    res.status(201).json({ success: true, token, user: { ...user, ...streak } });
   } catch (error) {
     if (error.code === '23505') {
       return res.status(409).json({ success: false, message: 'Ya existe una cuenta registrada con ese correo electrónico.' });
@@ -87,6 +89,7 @@ router.post('/login', authLimiter, async (req, res) => {
     }
 
     const token = signToken(user.id);
+    const streak = await applyLoginStreak(db, user.id);
 
     res.json({
       success: true,
@@ -95,7 +98,8 @@ router.post('/login', authLimiter, async (req, res) => {
         id: user.id,
         first_name: user.first_name,
         last_name: user.last_name,
-        email: user.email
+        email: user.email,
+        ...streak
       }
     });
   } catch (error) {

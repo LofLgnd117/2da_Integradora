@@ -42,7 +42,7 @@ router.get('/:id', optionalAuthMiddleware, async (req, res) => {
     const isSelf = req.userId && String(req.userId) === String(userId);
 
     const fields = isSelf
-      ? 'id, first_name, last_name, email, website, about_me, avatar_url, created_at'
+      ? 'id, first_name, last_name, email, website, about_me, avatar_url, created_at, current_streak, streak_saves_left'
       : 'id, first_name, last_name, website, about_me, avatar_url, created_at';
 
     const result = await db.query(`SELECT ${fields} FROM users WHERE id = $1`, [userId]);
@@ -51,8 +51,16 @@ router.get('/:id', optionalAuthMiddleware, async (req, res) => {
     }
 
     const recipesCount = await db.query('SELECT COUNT(*) FROM recipes WHERE user_id = $1', [userId]);
+    const badgesRes = await db.query(
+      'SELECT badge_type, unlocked_at FROM user_badges WHERE user_id = $1 ORDER BY unlocked_at ASC',
+      [userId]
+    );
 
-    res.json({ ...result.rows[0], recetas_count: parseInt(recipesCount.rows[0].count, 10) });
+    res.json({
+      ...result.rows[0],
+      recetas_count: parseInt(recipesCount.rows[0].count, 10),
+      badges: badgesRes.rows,
+    });
   } catch (error) {
     console.error('Error al obtener el perfil:', error);
     res.status(500).json({ error: 'Hubo un problema al consultar el perfil' });

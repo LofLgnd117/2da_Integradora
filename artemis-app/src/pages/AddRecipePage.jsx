@@ -14,8 +14,12 @@ export default function AddRecipePage() {
     description: '',
     category: 'Comidas y Platillos',
     total_time_minutes: 45,
-    servings: 4
+    servings: 4,
+    difficulty: 'Fácil'
   });
+
+  const [chefTips, setChefTips] = useState('');
+  const difficultyOptions = ['Fácil', 'Media', 'Difícil'];
 
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -102,6 +106,8 @@ export default function AddRecipePage() {
     dataToSend.append('category', formData.category);
     dataToSend.append('total_time_minutes', formData.total_time_minutes);
     dataToSend.append('servings', formData.servings);
+    dataToSend.append('difficulty', formData.difficulty);
+    dataToSend.append('chef_tips', chefTips);
 
     if (imageFile) {
       dataToSend.append('image', imageFile);
@@ -218,8 +224,8 @@ export default function AddRecipePage() {
               ></textarea>
             </div>
 
-            {/* Porciones, Tiempo y Categoría */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Porciones, Tiempo, Categoría y Dificultad */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div>
                 <label className="block text-gray-800 font-bold text-base mb-2">Porciones *</label>
                 <input
@@ -256,6 +262,20 @@ export default function AddRecipePage() {
                   <option value="Comidas y Platillos">Comidas y Platillos</option>
                   <option value="Dietas">Dietas</option>
                   <option value="Ocasiones">Ocasiones</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-gray-800 font-bold text-base mb-2">Dificultad *</label>
+                <select
+                  name="difficulty"
+                  value={formData.difficulty}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:border-[#2E5834] bg-[#FBFBFB] text-lg"
+                >
+                  {difficultyOptions.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -354,6 +374,23 @@ export default function AddRecipePage() {
                     )}
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* CONSEJOS DEL CHEF (OPCIONAL) */}
+            <div className="border-t border-gray-100 pt-8">
+              <div className="bg-[#839958]/10 border border-[#839958]/30 rounded-3xl p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl">💡</span>
+                  <h3 className="text-gray-800 font-bold text-lg">Consejos del Chef (Opcional)</h3>
+                </div>
+                <textarea
+                  rows="3"
+                  placeholder="Añade un tip o secreto para esta receta..."
+                  value={chefTips}
+                  onChange={(e) => setChefTips(e.target.value)}
+                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:border-[#2E5834] text-base bg-[#FBFBFB]"
+                ></textarea>
               </div>
             </div>
 

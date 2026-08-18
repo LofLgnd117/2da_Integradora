@@ -6,6 +6,12 @@ import CustomModal from '../components/CustomModal';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config/api';
 
+const BADGES_CATALOG = [
+  { type: 'critico_del_barrio', emoji: '🥉', label: 'Crítico del Barrio', description: 'Publica tu primera reseña en la receta de alguien más.' },
+  { type: 'maestro_del_orden', emoji: '🥈', label: 'Maestro del Orden', description: 'Guarda tu segunda receta en Recetas Guardadas.' },
+  { type: 'receta_de_oro', emoji: '🥇', label: 'Receta de Oro', description: 'Recibe tu primer "Me Gusta" en una receta tuya.' },
+];
+
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { user: authUser, isAuthenticated, initialized } = useAuth();
@@ -81,8 +87,11 @@ export default function ProfilePage() {
     );
   }
 
-  const { user, publishedRecipes } = profile;
+  const { user, publishedRecipes, badges = [] } = profile;
   const fullName = `${user.first_name} ${user.last_name}`;
+  const unlockedTypes = new Set(badges.map((b) => b.badge_type));
+  const streakDays = user.current_streak || 0;
+  const savesLeft = user.streak_saves_left ?? 0;
 
   return (
     <div className="min-h-screen bg-[#FBFBFB] flex flex-col font-sans">
@@ -308,48 +317,54 @@ export default function ProfilePage() {
                 <div className="bg-gradient-to-r from-[#1D1D1D] to-[#2E5834] text-white rounded-3xl p-8 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
                   <div>
                     <span className="bg-white/20 text-white font-bold px-4 py-1.5 rounded-full text-xs uppercase tracking-wider">
-                      Pasaporte Semanal Activo
+                      {streakDays > 0 ? 'Racha Activa' : 'Sin racha activa'}
                     </span>
-                    <h3 className="text-3xl font-black mt-3">🔥 Racha de Cocina: 4 Semanas</h3>
+                    <h3 className="text-3xl font-black mt-3">
+                      🔥 Racha de Cocina: {streakDays} {streakDays === 1 ? 'Día' : 'Días'}
+                    </h3>
                     <p className="text-gray-200 mt-1 text-base">
-                      ¡Excelente constancia! Estás alimentando tu cuerpo y corazón cada semana.
+                      {streakDays > 0
+                        ? '¡Excelente constancia! Estás alimentando tu cuerpo y corazón cada día que entras.'
+                        : 'Inicia sesión días seguidos para empezar tu racha de cocina.'}
                     </p>
                   </div>
 
                   <div className="bg-white/10 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/20 text-center">
                     <p className="text-xs font-bold text-gray-300 uppercase mb-1">Salvavidas Disponibles</p>
                     <div className="flex gap-2 justify-center text-2xl">
-                      <span>🛡️</span>
-                      <span>🛡️</span>
-                      <span>🛡️</span>
+                      {[0, 1, 2].map((i) => (
+                        <span key={i} className={i < savesLeft ? 'opacity-100' : 'opacity-30'}>🛡️</span>
+                      ))}
                     </div>
-                    <p className="text-xs text-gray-300 mt-1">3 permisos de descanso</p>
+                    <p className="text-xs text-gray-300 mt-1">{savesLeft} permisos de descanso</p>
                   </div>
                 </div>
 
                 <div>
                   <h4 className="text-2xl font-black text-[#1D1D1D] mb-4">Medallas de Honor</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-[#FBFBFB] p-6 rounded-3xl border border-gray-200">
-                      <div className="w-14 h-14 rounded-2xl bg-[#839958]/20 text-[#2E5834] font-bold flex items-center justify-center text-2xl mb-4">🥉</div>
-                      <h5 className="font-bold text-lg text-[#1D1D1D]">Crítico del Barrio</h5>
-                      <p className="text-gray-500 text-sm mt-1">Publica tu primera reseña en la receta de alguien más.</p>
-                      <span className="mt-4 inline-block bg-gray-200 text-gray-600 font-bold text-xs px-3 py-1 rounded-full">🔒 Por desbloquear</span>
-                    </div>
-
-                    <div className="bg-[#FBFBFB] p-6 rounded-3xl border border-gray-200">
-                      <div className="w-14 h-14 rounded-2xl bg-[#839958]/20 text-[#2E5834] font-bold flex items-center justify-center text-2xl mb-4">🥈</div>
-                      <h5 className="font-bold text-lg text-[#1D1D1D]">Maestro del Orden</h5>
-                      <p className="text-gray-500 text-sm mt-1">Crea tu segundo recetario en Recetas Guardadas.</p>
-                      <span className="mt-4 inline-block bg-gray-200 text-gray-600 font-bold text-xs px-3 py-1 rounded-full">🔒 Por desbloquear</span>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-3xl border-2 border-[#2E5834] shadow-sm">
-                      <div className="w-14 h-14 rounded-2xl bg-[#2E5834] text-white font-bold flex items-center justify-center text-2xl mb-4 shadow-md">🥇</div>
-                      <h5 className="font-bold text-lg text-[#1D1D1D]">Receta de Oro</h5>
-                      <p className="text-gray-500 text-sm mt-1">Recibe tu primer "Me Gusta" en tu primera receta.</p>
-                      <span className="mt-4 inline-block bg-[#839958]/20 text-[#2E5834] font-bold text-xs px-3 py-1 rounded-full">✨ Desbloqueada</span>
-                    </div>
+                    {BADGES_CATALOG.map((badge) => {
+                      const unlocked = unlockedTypes.has(badge.type);
+                      return (
+                        <div
+                          key={badge.type}
+                          className={unlocked ? 'bg-white p-6 rounded-3xl border-2 border-[#2E5834] shadow-sm' : 'bg-[#FBFBFB] p-6 rounded-3xl border border-gray-200'}
+                        >
+                          <div className={`w-14 h-14 rounded-2xl font-bold flex items-center justify-center text-2xl mb-4 ${
+                            unlocked ? 'bg-[#2E5834] text-white shadow-md' : 'bg-[#839958]/20 text-[#2E5834]'
+                          }`}>
+                            {badge.emoji}
+                          </div>
+                          <h5 className="font-bold text-lg text-[#1D1D1D]">{badge.label}</h5>
+                          <p className="text-gray-500 text-sm mt-1">{badge.description}</p>
+                          {unlocked ? (
+                            <span className="mt-4 inline-block bg-[#839958]/20 text-[#2E5834] font-bold text-xs px-3 py-1 rounded-full">✨ Desbloqueada</span>
+                          ) : (
+                            <span className="mt-4 inline-block bg-gray-200 text-gray-600 font-bold text-xs px-3 py-1 rounded-full">🔒 Por desbloquear</span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

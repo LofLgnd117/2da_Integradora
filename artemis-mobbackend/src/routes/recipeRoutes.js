@@ -4,8 +4,10 @@ const router = express.Router();
 const db = require('../config/db');
 const { authMiddleware, optionalAuthMiddleware } = require('../middleware/auth');
 const { upload, buildFileUrl } = require('../middleware/upload');
+const { notify, unlockBadge } = require('../services/gamification');
 
 const DEFAULT_RECIPE_IMAGE = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80';
+const ALLOWED_DIFFICULTIES = ['Fácil', 'Media', 'Difícil'];
 
 // ==========================================
 // RUTA: Obtener todas las recetas (Para HomeScreen)
@@ -131,8 +133,20 @@ router.get('/:id', optionalAuthMiddleware, async (req, res) => {
     `;
     const stepsResult = await db.query(stepsQuery, [recipeId]);
 
+    const likesCountResult = await db.query(`SELECT COUNT(*) FROM recipe_likes WHERE recipe_id = $1`, [recipeId]);
+
+    const reviewsResult = await db.query(`
+      SELECT rr.id, rr.comment_text, rr.created_at, rr.user_id,
+             u.first_name || ' ' || u.last_name AS author
+      FROM recipe_reviews rr
+      JOIN users u ON rr.user_id = u.id
+      WHERE rr.recipe_id = $1
+      ORDER BY rr.created_at DESC
+    `, [recipeId]);
+
     let esDueno = false;
     let estaGuardada = false;
+    let leGusta = false;
     if (req.userId) {
       esDueno = receta.user_id === req.userId;
       const savedCheck = await db.query(
@@ -142,6 +156,12 @@ router.get('/:id', optionalAuthMiddleware, async (req, res) => {
         [req.userId, recipeId]
       );
       estaGuardada = savedCheck.rows.length > 0;
+
+      const likeCheck = await db.query(
+        `SELECT 1 FROM recipe_likes WHERE recipe_id = $1 AND user_id = $2`,
+        [recipeId, req.userId]
+      );
+      leGusta = likeCheck.rows.length > 0;
     }
 
     res.json({
@@ -150,6 +170,9 @@ router.get('/:id', optionalAuthMiddleware, async (req, res) => {
       pasos: stepsResult.rows,
       es_dueno: esDueno,
       esta_guardada: estaGuardada,
+      likes_count: parseInt(likesCountResult.rows[0].count, 10),
+      le_gusta: leGusta,
+      resenas: reviewsResult.rows,
     });
   } catch (error) {
     console.error("Error al obtener el detalle de la receta:", error);
@@ -163,7 +186,8 @@ router.get('/:id', optionalAuthMiddleware, async (req, res) => {
 router.post('/', authMiddleware, upload.single('imagen'), async (req, res) => {
   const client = await db.connect();
   try {
-    const { titulo, descripcion, porciones, tiempo, categoria, chef_tips } = req.body;
+    const { titulo, descripcion, porciones, tiempo, categoria, chef_tips, dificultad } = req.body;
+    const finalDifficulty = ALLOWED_DIFFICULTIES.includes(dificultad) ? dificultad : 'Fácil';
 
     let ingredientes = [];
     if (req.body.ingredientes) {
@@ -181,8 +205,8 @@ router.post('/', authMiddleware, upload.single('imagen'), async (req, res) => {
     await client.query('BEGIN');
 
     const insertRecipeQuery = `
-      INSERT INTO recipes (user_id, title, description, servings, total_time_minutes, category, image_url, chef_tips)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO recipes (user_id, title, description, servings, total_time_minutes, category, image_url, chef_tips, difficulty)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING id;
     `;
     const recipeValues = [
@@ -194,6 +218,7 @@ router.post('/', authMiddleware, upload.single('imagen'), async (req, res) => {
       categoria || 'Comidas y Platillos',
       finalImageUrl,
       chef_tips?.trim() || null,
+      finalDifficulty,
     ];
 
     const recipeResult = await client.query(insertRecipeQuery, recipeValues);
@@ -296,6 +321,11 @@ router.post('/:id/guardar', authMiddleware, async (req, res) => {
       [boardId, recipeId]
     );
 
+    const savedCountRes = await db.query(`SELECT COUNT(*) FROM board_recipes WHERE board_id = $1`, [boardId]);
+    if (parseInt(savedCountRes.rows[0].count, 10) === 2) {
+      await unlockBadge(db, req.userId, 'maestro_del_orden');
+    }
+
     res.json({ mensaje: '¡Receta guardada en tus favoritas!' });
   } catch (error) {
     console.error('Error al guardar receta:', error);
@@ -316,6 +346,109 @@ router.delete('/:id/guardar', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Error al quitar receta guardada:', error);
     res.status(500).json({ error: 'Hubo un problema al quitar la receta guardada' });
+  }
+});
+
+// ==========================================
+// RUTA: Alternar "Me gusta" en una receta
+// ==========================================
+router.post('/:id/like', authMiddleware, async (req, res) => {
+  const client = await db.connect();
+  try {
+    const recipeId = req.params.id;
+
+    const recipeRes = await client.query('SELECT user_id, title, first_like_notified FROM recipes WHERE id = $1', [recipeId]);
+    if (recipeRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Receta no encontrada' });
+    }
+    const receta = recipeRes.rows[0];
+
+    await client.query('BEGIN');
+
+    const existing = await client.query(
+      'SELECT 1 FROM recipe_likes WHERE recipe_id = $1 AND user_id = $2',
+      [recipeId, req.userId]
+    );
+
+    let leGusta;
+    if (existing.rows.length > 0) {
+      await client.query('DELETE FROM recipe_likes WHERE recipe_id = $1 AND user_id = $2', [recipeId, req.userId]);
+      leGusta = false;
+    } else {
+      await client.query('INSERT INTO recipe_likes (recipe_id, user_id) VALUES ($1, $2)', [recipeId, req.userId]);
+      leGusta = true;
+
+      if (!receta.first_like_notified) {
+        await client.query('UPDATE recipes SET first_like_notified = TRUE WHERE id = $1', [recipeId]);
+        await notify(
+          client,
+          receta.user_id,
+          'like',
+          '🌟 ¡Primer Me Gusta en tu Receta!',
+          `A alguien de la comunidad le encantó tu "${receta.title}". ¡Tu sazón inspira a otros!`,
+          recipeId
+        );
+        await unlockBadge(client, receta.user_id, 'receta_de_oro');
+      }
+    }
+
+    const countRes = await client.query('SELECT COUNT(*) FROM recipe_likes WHERE recipe_id = $1', [recipeId]);
+
+    await client.query('COMMIT');
+    res.json({ le_gusta: leGusta, likes_count: parseInt(countRes.rows[0].count, 10) });
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Error al actualizar el "me gusta":', error);
+    res.status(500).json({ error: 'Hubo un problema al actualizar el "me gusta"' });
+  } finally {
+    client.release();
+  }
+});
+
+// ==========================================
+// RUTA: Publicar una reseña en una receta
+// ==========================================
+router.post('/:id/resenas', authMiddleware, async (req, res) => {
+  const client = await db.connect();
+  try {
+    const recipeId = req.params.id;
+    const { comentario } = req.body || {};
+
+    if (!comentario || !comentario.trim()) {
+      return res.status(400).json({ error: 'Escribe algo antes de publicar tu reseña.' });
+    }
+
+    const recipeRes = await client.query('SELECT user_id FROM recipes WHERE id = $1', [recipeId]);
+    if (recipeRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Receta no encontrada' });
+    }
+    const recipeOwnerId = recipeRes.rows[0].user_id;
+
+    await client.query('BEGIN');
+
+    const insertRes = await client.query(
+      `INSERT INTO recipe_reviews (recipe_id, user_id, comment_text)
+       VALUES ($1, $2, $3)
+       RETURNING id, comment_text, created_at`,
+      [recipeId, req.userId, comentario.trim()]
+    );
+
+    if (recipeOwnerId !== req.userId) {
+      await unlockBadge(client, req.userId, 'critico_del_barrio');
+    }
+
+    await client.query('COMMIT');
+
+    const authorRes = await db.query('SELECT first_name, last_name FROM users WHERE id = $1', [req.userId]);
+    const author = authorRes.rows[0] ? `${authorRes.rows[0].first_name} ${authorRes.rows[0].last_name}` : '';
+
+    res.status(201).json({ resena: { ...insertRes.rows[0], author, user_id: req.userId } });
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Error al publicar la reseña:', error);
+    res.status(500).json({ error: 'Hubo un problema al publicar la reseña' });
+  } finally {
+    client.release();
   }
 });
 

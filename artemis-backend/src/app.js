@@ -30,11 +30,13 @@ app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 const recipeRoutes = require('./routes/recipeRoutes');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 // 2. Usar rutas con el prefijo /api/recipes
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Ruta de prueba
 app.get('/api/health', (req, res) => {

@@ -13,7 +13,8 @@ router.get('/:id', async (req, res) => {
 
     // 1. Datos del usuario en PostgreSQL
     const userRes = await db.query(
-      `SELECT id, first_name, last_name, email, created_at 
+      `SELECT id, first_name, last_name, email, created_at,
+              current_streak, streak_saves_left
        FROM users WHERE id = $1`,
       [id]
     );
@@ -24,8 +25,14 @@ router.get('/:id', async (req, res) => {
 
     // 2. Recetas que este usuario ha publicado
     const recipesRes = await db.query(
-      `SELECT id, title, total_time_minutes, servings, image_url, category 
+      `SELECT id, title, total_time_minutes, servings, image_url, category
        FROM recipes WHERE user_id = $1 ORDER BY created_at DESC`,
+      [id]
+    );
+
+    // 3. Medallas desbloqueadas
+    const badgesRes = await db.query(
+      `SELECT badge_type, unlocked_at FROM user_badges WHERE user_id = $1 ORDER BY unlocked_at ASC`,
       [id]
     );
 
@@ -33,7 +40,8 @@ router.get('/:id', async (req, res) => {
       success: true,
       user: userRes.rows[0],
       recipesCount: recipesRes.rows.length,
-      publishedRecipes: recipesRes.rows
+      publishedRecipes: recipesRes.rows,
+      badges: badgesRes.rows
     });
   } catch (error) {
     console.error('[ERROR - GET /api/users/:id]:', error.message);
